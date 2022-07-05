@@ -8,6 +8,11 @@ ARG FUNCTION_DIR="/function/"
 # Change working directory to /function
 WORKDIR ${FUNCTION_DIR}
 
+# Set Up Lambda Runtime Environment
+RUN curl -Lo /usr/local/bin/aws-lambda-rie \
+    https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie && \
+    chmod +x /usr/local/bin/aws-lambda-rie
+
 # Copy files from the source folder
 COPY src/. ${FUNCTION_DIR}
 
@@ -24,7 +29,10 @@ WORKDIR ${ROOT}
 # Pull the latest official release of repo and copy it's file processor module into function directory
 RUN git clone https://github.com/dbarrous/lambda_container_test.git \
     && cd lambda_container_test/src \
-    && cp file_processor /function/
+    && cp -r file_processor /function/
+
+# Change working directory to /function
+WORKDIR ${FUNCTION_DIR}
 
 # Runs entry script to decide wether to run function in local environment or in production environment
 ENTRYPOINT [ "sh", "entry_script.sh" ]

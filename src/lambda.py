@@ -9,6 +9,10 @@ import logging
 import json
 from file_processor.file_processor import FileProcessor
 
+logger = logging.getLogger()
+# Debug used for development
+# logger.setLevel(logging.DEBUG)
+
 
 def handler(event, context):
     """
@@ -17,14 +21,17 @@ def handler(event, context):
     """
 
     # Extract needed information from event
-    bucket = event["Bucket"]
-    file_key = event["FileKey"]
+    try:
+        bucket = event["Bucket"]
+        file_key = event["FileKey"]
 
-    # Pass required variables to process function and returns a 200 (Successful) / 500 (Error) HTTP response
-    response = process_file(bucket, file_key)
+        # Pass required variables to process function and returns a 200 (Successful) / 500 (Error) HTTP response
+        response = process_file(bucket, file_key)
 
-    return response
+        return response
 
+    except:
+        return {"statusCode": 500, "body": json.dumps("Error Extracting Variables from Event")}
 
 def process_file(bucket, file_key):
     """
@@ -32,16 +39,12 @@ def process_file(bucket, file_key):
     in it's correct environment.
     """
 
-    # Initialize Logger
-    logging.basicConfig()
-    logger = logging.getLogger(__name__)
-
     # Production (Official Release) Environment / Local Development
     if "dev_" not in file_key:
         try:
             logger.info("Initializing FileProcessor - Environment: Production")
             process = FileProcessor(bucket, file_key)
-            logger.info("FileProcessor Initialized Successfully")
+            logger.warning("FileProcessor Initialized Successfully")
             process.process_file()
 
             return {

@@ -9,6 +9,10 @@ logging to DynamoDB + S3 log file and docstrings expanded
 
 import logging
 
+logger = logging.getLogger()
+# Debug mode used for development
+# logger.setLevel(logging.DEBUG)
+
 
 class FileProcessor:
     """
@@ -20,9 +24,6 @@ class FileProcessor:
         """
         FileProcessor Constructor
         """
-        # Initialize Logger
-        logging.basicConfig()
-        self.logger = logging.getLogger(__name__)
 
         # Initialize Class Variables
         self.bucket = bucket
@@ -50,20 +51,21 @@ class FileProcessor:
             self._process_merit_file()
 
         else:
-            self.logger.error("ERROR: Not a valid bucket event")
+            logger.error("ERROR: Not a valid bucket event")
+            raise Exception("Not a valid bucket event")
 
     def _download_file_from_s3(self):
         """
         Function to download file from S3 using bucket key
         """
-        self.logger.info("Downloading File: %s", self.file_key)
+        logger.info("Downloading File: %s", self.file_key)
         try:
             # TODO: Add downloading logic
-            self.logger.info("File Downloaded Successfully: %s", self.file_key)
+            logger.info("File Downloaded Successfully: %s", self.file_key)
             return True
 
         except:
-            self.logger.error("Error when Downloading File: %s", self.file_key)
+            logger.error("Error when Downloading File: %s", self.file_key)
             return None
 
     def _log_status_in_dynamo_db(self):
@@ -87,12 +89,12 @@ class FileProcessor:
         TODO: Add processing logic
         """
         # import hermes_spani
-        self.logger.info("Processing SPAN-i Instrument File: %s", self.file_key)
+        logger.info("Processing SPAN-i Instrument File: %s", self.file_key)
         try:
-            self.logger.info("File Processed Successfully: %s", self.file_key)
+            logger.info("File Processed Successfully: %s", self.file_key)
 
         except:
-            self.logger.error("Error when Processing File: %s", self.file_key)
+            logger.error("Error when Processing File: %s", self.file_key)
 
     def _process_nemesis_file(self):
         """
@@ -101,12 +103,12 @@ class FileProcessor:
         TODO: Add processing logic
         """
         # import hermes_nemesis
-        self.logger.info("Processing NEMESIS Instrument File: %s", self.file_key)
+        logger.info("Processing NEMESIS Instrument File: %s", self.file_key)
         try:
-            self.logger.info("File Processed Successfully: %s", self.file_key)
+            logger.info("File Processed Successfully: %s", self.file_key)
 
         except:
-            self.logger.error("Error when Processing File: %s", self.file_key)
+            logger.error("Error when Processing File: %s", self.file_key)
 
     def _process_eea_file(self):
         """
@@ -115,12 +117,12 @@ class FileProcessor:
         TODO: Add processing logic
         """
         # import hermes_eea
-        self.logger.info("Processing EEA Instrument File: %s", self.file_key)
+        logger.info("Processing EEA Instrument File: %s", self.file_key)
         try:
-            self.logger.info("File Processed Successfully: %s", self.file_key)
+            logger.info("File Processed Successfully: %s", self.file_key)
 
         except:
-            self.logger.error("Error when Processing File: %s", self.file_key)
+            logger.error("Error when Processing File: %s", self.file_key)
 
     def _process_merit_file(self):
         """
@@ -129,9 +131,9 @@ class FileProcessor:
         TODO: Add processing logic
         """
         # import hermes_merit
-        self.logger.info("Processing MERIT Instrument File: %s", self.file_key)
+        logger.info("Processing MERIT Instrument File: %s", self.file_key)
         try:
-            self.logger.info("File Processed Successfully: %s", self.file_key)
+            logger.info("File Processed Successfully: %s", self.file_key)
 
         except:
-            self.logger.error("Error when Processing File: %s", self.file_key)
+            logger.error("Error when Processing File: %s", self.file_key)

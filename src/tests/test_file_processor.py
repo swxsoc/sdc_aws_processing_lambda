@@ -8,7 +8,8 @@ from file_processor.file_processor import FileProcessor
 
 def test_initializing_class():
     """
-    Test function that tests if class initializes correctly if passed correct variables.
+    Test function that tests if class initializes correctly if
+    passed correct variables.
     """
     test_bucket = "test_bucket"
     test_file_key = "/test_file_key.txt"

@@ -1,8 +1,10 @@
 """
-This module contains the handler function and the main function which contains the logic
-that initializes the FileProcessor class in it's correct environment.
+This module contains the handler function and the main function
+which contains the logicthat initializes the FileProcessor class
+in it's correct environment.
 
-TODO: Skeleton Code for initial repo, logic still needs to be implemented and docstrings expanded
+TODO: Skeleton Code for initial repo, logic still needs to be
+implemented and docstrings expanded
 """
 
 import logging
@@ -16,8 +18,9 @@ logger = logging.getLogger()
 
 def handler(event, context):
     """
-    This is the lambda handler function that passes variables to the function that
-    handles the logic that initializes the FileProcessor class in it's correct environment.
+    This is the lambda handler function that passes variables to
+    the function that handles the logic that initializes the
+    FileProcessor class in it's correct environment.
     """
 
     # Extract needed information from event
@@ -25,18 +28,26 @@ def handler(event, context):
         bucket = event["Bucket"]
         file_key = event["FileKey"]
 
-        # Pass required variables to process function and returns a 200 (Successful) / 500 (Error) HTTP response
+        """
+        Pass required variables to process function and returns a
+        200 (Successful) / 500 (Error) HTTP response
+        """
         response = process_file(bucket, file_key)
 
         return response
 
-    except:
-        return {"statusCode": 500, "body": json.dumps("Error Extracting Variables from Event")}
+    except BaseException as exception:
+        logger.error("Error occurred with Lambda Function: %s", exception)
+        return {
+            "statusCode": 500,
+            "body": json.dumps("Error Extracting Variables from Event"),
+        }
+
 
 def process_file(bucket, file_key):
     """
-    This is the main function that handles logic that initializes the FileProcessor class
-    in it's correct environment.
+    This is the main function that handles logic that initializes
+    the FileProcessor class in it's correct environment.
     """
 
     # Production (Official Release) Environment / Local Development
@@ -52,10 +63,13 @@ def process_file(bucket, file_key):
                 "body": json.dumps("File Processed Successfully"),
             }
 
-        except:
-            logger.error("Error occured with FileProcessor")
+        except BaseException as exception:
+            logger.error("Error occurred with FileProcessor: %s", exception)
 
-            return {"statusCode": 500, "body": json.dumps("Error Processing File")}
+            return {
+                "statusCode": 500,
+                "body": json.dumps("Error Processing File"),
+            }
 
     # Development (Master Branch but not Official Release) Environment
     else:
@@ -67,7 +81,9 @@ def process_file(bucket, file_key):
                 FileProcessor as DevFileProcessor,
             )
 
-            logger.info("Initializing FileProcessor - Environment: Development")
+            logger.info(
+                "Initializing FileProcessor - Environment: Development"
+            )
             process = DevFileProcessor(bucket, file_key)
             logger.info("FileProcessor Initialized Successfully")
             process.process_file()
@@ -77,7 +93,10 @@ def process_file(bucket, file_key):
                 "body": json.dumps("File Processed Successfully"),
             }
 
-        except:
-            logger.error("Error occured with FileProcessor")
+        except BaseException as exception:
+            logger.error("Error occurred with FileProcessor: %s", exception)
 
-            return {"statusCode": 500, "body": json.dumps("Error Processing File")}
+            return {
+                "statusCode": 500,
+                "body": json.dumps("Error Processing File"),
+            }

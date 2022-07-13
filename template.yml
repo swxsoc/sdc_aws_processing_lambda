@@ -1,3 +1,4 @@
+Transform: 'AWS::Serverless-2016-10-31'
 Description: An AWS Serverless Specification template describing your function.
 Resources:
   Function:

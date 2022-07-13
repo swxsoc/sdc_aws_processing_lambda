@@ -18,8 +18,8 @@ jobs:
         python -m pip install flake8 black
     - name: Lint with Black
       run: |
-        black --check --diff src
+        black --check --diff sdc_aws_processing_function/assets/src
     - name: flake8
       run: |
-        flake8 --count src
+        flake8 --count sdc_aws_processing_function/assets/src
 

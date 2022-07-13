@@ -1,0 +1,11 @@
+Description: An AWS Serverless Specification template describing your function.
+Resources:
+  Function:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: sdc_aws_processing_lambda
+      Description: >
+        Lambda function which tags unread articles (saved in the last 7 days) in my Pocket based on read-time.
+      Handler: lambda.handler
+      Runtime: python3.9
+      Timeout: 300

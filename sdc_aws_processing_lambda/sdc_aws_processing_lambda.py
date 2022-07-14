@@ -1,6 +1,8 @@
 from aws_cdk import (
     Stack,
     aws_lambda,
+    aws_ecr,
+    aws_ecr_assets,
     aws_iam as iam,
 )
 
@@ -11,20 +13,16 @@ class SDCAWSProcessingLambdaStack(Stack):
    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # Create IAM Lambda execution role
-        lambda_exec_role = iam.Role(
-            self,
-            'swsoc-lambda-processing-function',
-            assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
-            role_name='swsoc-lambda-processing-function',
-            description='Role used by SWSOC Processing Lambda Function.',
-            managed_policies=[
-                iam.ManagedPolicy.from_managed_policy_arn(self,
-                    'admin_role',
-                    'arn:aws:iam::aws:policy/AdministratorAccess'
-                 )
-            ]
-        )
+        ecr_repository = aws_ecr.Repository(
+                            self, 
+                            id="Repo", 
+                            repository_name="sdc_aws_processing_lambda_function",
+                            )
+
+        docker_image_asset = aws_ecr_assets.DockerImageAsset(self, "sdc_aws_processing_lambda",
+            directory="./sdc_aws_processing_lambda/assets",
+            file="Dockerfile"
+            )
 
         ### Create Cognito Remediator Lambda function
         sdc_aws_processing_function = aws_lambda.DockerImageFunction(
@@ -32,7 +30,7 @@ class SDCAWSProcessingLambdaStack(Stack):
             id="sdc_aws_processing_lambda_function",
             function_name="sdc_aws_processing_lambda_function",
             description="SWSOC Processing Lambda function deployed using AWS CDK Python",
-            code=aws_lambda.DockerImageCode.from_image_asset("./sdc_aws_processing_lambda/assets/"),
+            code=aws_lambda.DockerImageCode.from_ecr(ecr_repository),
         )
 
 

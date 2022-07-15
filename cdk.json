@@ -31,7 +31,6 @@
     "@aws-cdk/core:target-partitions": [
       "aws",
       "aws-cn"
-    ],
-    "assets-ecr-repository-name": "sdc_aws_processing_lambda" 
+    ]
   }
 }

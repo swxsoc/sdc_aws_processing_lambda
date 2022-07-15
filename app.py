@@ -3,7 +3,7 @@ import os
 
 import aws_cdk as cdk
 
-from sdc_aws_processing_lambda.sdc_aws_processing_lambda import SDCAWSProcessingLambdaStack
+from cdk_deployment.sdc_aws_processing_lambda import SDCAWSProcessingLambdaStack
 
 
 app = cdk.App()

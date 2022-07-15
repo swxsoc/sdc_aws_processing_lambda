@@ -3,7 +3,7 @@ FROM public.ecr.aws/w5r9l1c8/swsoc-docker-lambda-base:latest
 
 # Working Directory Arguments
 ARG ROOT="/"
-ARG FUNCTION_DIR="/function/"
+ARG FUNCTION_DIR="/lambda_function/"
 
 # Change working directory to /function
 WORKDIR ${FUNCTION_DIR}
@@ -29,7 +29,7 @@ WORKDIR ${ROOT}
 # Pull the latest official release of repo and copy it's file processor module into function directory
 RUN git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git \
     && cd sdc_aws_processing_lambda/sdc_aws_processing_lambda/assets/src \
-    && cp -r file_processor /function/
+    && cp -r file_processor /lambda_function/
 
 WORKDIR ${ROOT}
 

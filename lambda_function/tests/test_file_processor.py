@@ -3,7 +3,7 @@ This module tests the FileProcessor class and it's functions
 TODO: This is skeleton test for starter repo, still needs to be implemented
 """
 
-from file_processor.file_processor import FileProcessor
+from src.file_processor.file_processor import FileProcessor
 
 
 def test_initializing_class():

@@ -17,7 +17,6 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-astropy pytest-cov
     - name: Run tests
-      run: pytest --pyargs src --cov sdc_aws_processing_function/assets/src
-      env:
-        PLATFORM: ${{ matrix.platform }}
+      run: pytest --pyargs lambda_function --cov lambda_function
+
 

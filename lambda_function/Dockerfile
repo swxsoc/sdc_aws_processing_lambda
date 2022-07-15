@@ -27,13 +27,16 @@ COPY entry_script.sh ${FUNCTION_DIR}
 WORKDIR ${ROOT}
 
 # Pull the latest official release of repo and copy it's file processor module into function directory
-RUN git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git \
-    && cd sdc_aws_processing_lambda/sdc_aws_processing_lambda/assets/src \
+RUN git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git --branch $(git -c 'versionsort.suffix=-' \
+ls-remote --exit-code --refs --sort='version:refname' --tags https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git \
+'*.*.*' | tail --lines=1 | cut --delimiter='/' --fields=3)
+
+# Change rights on folder
+RUN chmod -R 777 sdc_aws_processing_lambda
+
+# Copy file_processor module from release to module
+RUN cd sdc_aws_processing_lambda/lambda_function/src \
     && cp -r file_processor /lambda_function/
-
-WORKDIR ${ROOT}
-
-RUN chmod -R 777 sdc_aws_processing_lambda/sdc_aws_processing_lambda/assets/src/
 
 # Change working directory to /function
 WORKDIR ${FUNCTION_DIR}

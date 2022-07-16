@@ -31,7 +31,7 @@ phases:
       - echo Pushing the Docker image...
       - docker push 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:latest
       - export TAG=$(date +%Y-%m-%d-%H-%M-%S)
-      - docker tag sdc_aws_processing_lambda:latest 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:$(TAG)
-      - docker push 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:$(TAG)
+      - docker tag sdc_aws_processing_lambda:latest sdc_aws_processing_lambda:$(printenv TAG)
+      - docker push 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:latest
       - cdk bootstrap -y
       - cdk deploy -y

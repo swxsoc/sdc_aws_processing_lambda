@@ -43,6 +43,7 @@ def handler(event, context):
             "body": json.dumps("Error Extracting Variables from Event - test"),
         }
 
+
 def process_file(bucket, file_key):
     """
     This is the main function that handles logic that initializes

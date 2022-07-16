@@ -1,3 +1,4 @@
+import os
 from aws_cdk import Stack, aws_lambda, aws_ecr
 from constructs import Construct
 import logging
@@ -15,6 +16,9 @@ class SDCAWSProcessingLambdaStack(Stack):
             self, id=f"{repo_name}_repo", repository_name=repo_name
         )
 
+        # Get time tag enviromental variable
+        TAG = os.getenv('TAG') if os.getenv('TAG') != None else 'latest'
+
         # Create Container Image ECR Function
         sdc_aws_processing_function = aws_lambda.DockerImageFunction(
             scope=self,
@@ -23,7 +27,7 @@ class SDCAWSProcessingLambdaStack(Stack):
             description=(
                 "SWSOC Processing Lambda function deployed using AWS CDK Python"
             ),
-            code=aws_lambda.DockerImageCode.from_ecr(ecr_repository, tag='latest'),
+            code=aws_lambda.DockerImageCode.from_ecr(ecr_repository, tag=TAG),
         )
 
         logging.info("Function created successfully: %s", sdc_aws_processing_function)

@@ -17,7 +17,7 @@ class SDCAWSProcessingLambdaStack(Stack):
         )
 
         # Get time tag enviromental variable
-        TAG = os.getenv('TAG') if os.getenv('TAG') != None else 'latest'
+        TAG = os.getenv("TAG") if os.getenv("TAG") != None else "latest"
 
         # Create Container Image ECR Function
         sdc_aws_processing_function = aws_lambda.DockerImageFunction(

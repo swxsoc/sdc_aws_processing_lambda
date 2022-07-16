@@ -40,9 +40,8 @@ def handler(event, context):
         logger.error("Error occurred with Lambda Function: %s", exception)
         return {
             "statusCode": 500,
-            "body": json.dumps("Error Extracting Variables from Event"),
+            "body": json.dumps("Error Extracting Variables from Event - test"),
         }
-
 
 def process_file(bucket, file_key):
     """

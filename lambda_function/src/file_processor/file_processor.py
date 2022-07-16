@@ -142,7 +142,7 @@ class FileProcessor:
         TODO: Add processing logic
         """
         # import hermes_merit
-        logger.info("Processing MERIT Instrument File: %s", self.file_key)
+        logger.info("Processing MERIT Instrument File *Test*: %s", self.file_key)
         try:
             logger.info("File Processed Successfully: %s", self.file_key)
 

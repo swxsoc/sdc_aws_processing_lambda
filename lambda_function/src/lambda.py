@@ -66,10 +66,7 @@ def process_file(bucket, file_key):
         except BaseException as exception:
             logger.error("Error occurred with FileProcessor: %s", exception)
 
-            return {
-                "statusCode": 500,
-                "body": json.dumps("Error Processing File"),
-            }
+            return {"statusCode": 500, "body": json.dumps("Error Processing File")}
 
     # Development (Master Branch but not Official Release) Environment
     else:
@@ -81,9 +78,7 @@ def process_file(bucket, file_key):
                 FileProcessor as DevFileProcessor,
             )
 
-            logger.info(
-                "Initializing FileProcessor - Environment: Development"
-            )
+            logger.info("Initializing FileProcessor - Environment: Development")
             process = DevFileProcessor(bucket, file_key)
             logger.info("FileProcessor Initialized Successfully")
             process.process_file()
@@ -96,7 +91,4 @@ def process_file(bucket, file_key):
         except BaseException as exception:
             logger.error("Error occurred with FileProcessor: %s", exception)
 
-            return {
-                "statusCode": 500,
-                "body": json.dumps("Error Processing File"),
-            }
+            return {"statusCode": 500, "body": json.dumps("Error Processing File")}

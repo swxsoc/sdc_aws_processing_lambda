@@ -66,9 +66,7 @@ class FileProcessor:
 
         except BaseException as exception:
             logger.error(
-                "Error when Processing File: %s Error: %s",
-                self.file_key,
-                exception,
+                "Error when Processing File: %s Error: %s", self.file_key, exception
             )
             return None
 

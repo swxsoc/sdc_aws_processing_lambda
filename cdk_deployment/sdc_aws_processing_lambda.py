@@ -27,7 +27,7 @@ class SDCAWSProcessingLambdaStack(Stack):
             description=(
                 "SWSOC Processing Lambda function deployed using AWS CDK Python"
             ),
-            code=aws_lambda.DockerImageCode.from_ecr(ecr_repository, tag_or_digest=TAG),
+            code=aws_lambda.DockerImageCode.from_ecr(ecr_repository),
         )
 
         logging.info("Function created successfully: %s", sdc_aws_processing_function)

@@ -1,0 +1,34 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - echo Install dependencies
+      - pip3 install flake8 black pytest pytest-astropy pytest-cov
+      - pip3 install pytest pytest-astropy pytest-cov
+      - pip3 install -r requirements.txt
+      - npm install -g aws-cdk
+      - echo Lint with Black
+      - black --check --diff app.py lambda_function cdk_deployment
+      - echo Lint with Flake
+      - flake8 --count --max-line-length 88 app.py lambda_function cdk_deployment
+      - echo Perform Unit Testing
+      - pytest --pyargs lambda_function --cov lambda_function
+      - cdk synth
+      - aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 351967858401.dkr.ecr.us-east-2.amazonaws.com
+
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t sdc_aws_processing_lambda lambda_function/.
+      - docker tag sdc_aws_processing_lambda:latest 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:latest
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:latest
+      - cdk bootstrap -y
+      - cdk deploy -y

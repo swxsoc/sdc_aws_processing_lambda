@@ -10,10 +10,19 @@ class SDCAWSProcessingLambdaStack(Stack):
         # ECR Repo Name
         repo_name = "sdc_aws_processing_lambda"
 
-        # Get SDC Processing Lambda ECR Repo
-        ecr_repository = aws_ecr.Repository.from_repository_name(
-            self, id=f"{repo_name}_repo", repository_name=repo_name
-        )
+        # Use existing ecr repo or create new one
+        try:
+            logging.info("Using Existing %s repo", repo_name)
+            # Get SDC Processing Lambda ECR Repo
+            ecr_repository = aws_ecr.Repository.from_repository_name(
+                self, id=f"{repo_name}_repo", repository_name=repo_name
+            )
+        except BaseException as error:
+            logging.error("Error %s trying to get repo: %s", error, repo_name)
+            # Get SDC Processing Lambda ECR Repo
+            ecr_repository = aws_ecr.Repository(
+                self, id=f"{repo_name}_repo", repository_name=repo_name
+            )
 
         # Create Container Image ECR Function
         sdc_aws_processing_function = aws_lambda.DockerImageFunction(

@@ -16,7 +16,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-astropy pytest-cov
+        python -m pip install -r requirements.txt
+        npm install -g aws-cdk
     - name: Run tests
-      run: pytest --pyargs lambda_function --cov lambda_function
+      run: |
+        pytest --pyargs lambda_function --cov lambda_function
+        cdk synth
 
 

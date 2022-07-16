@@ -30,7 +30,7 @@ phases:
       - echo Build completed on `date`
       - echo Pushing the Docker image...
       - docker push 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:latest
-      - exporty TAG=$(date +%Y-%m-%d-%H-%M-%S)
+      - export TAG=$(date +%Y-%m-%d-%H-%M-%S)
       - docker tag sdc_aws_processing_lambda:latest 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:$(TAG)
       - docker push 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:$(TAG)
       - cdk bootstrap -y

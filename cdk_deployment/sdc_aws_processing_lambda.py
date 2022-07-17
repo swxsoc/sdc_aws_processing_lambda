@@ -18,7 +18,7 @@ class SDCAWSProcessingLambdaStack(Stack):
 
         # Get time tag enviromental variable
         TAG = os.getenv("TAG") if os.getenv("TAG") is not None else "latest"
-        logging.warning("%s", TAG)
+        
         # Create Container Image ECR Function
         sdc_aws_processing_function = aws_lambda.DockerImageFunction(
             scope=self,
@@ -27,7 +27,7 @@ class SDCAWSProcessingLambdaStack(Stack):
             description=(
                 "SWSOC Processing Lambda function deployed using AWS CDK Python"
             ),
-            code=aws_lambda.DockerImageCode.from_ecr(ecr_repository),
+            code=aws_lambda.DockerImageCode.from_ecr(ecr_repository, tag_or_digest=TAG),
         )
 
         logging.info("Function created successfully: %s", sdc_aws_processing_function)

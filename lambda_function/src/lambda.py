@@ -40,7 +40,7 @@ def handler(event, context):
         logger.error("Error occurred with Lambda Function: %s", exception)
         return {
             "statusCode": 500,
-            "body": json.dumps("Error Extracting Variables from Event - test"),
+            "body": json.dumps("Error Extracting Variables from Event"),
         }
 
 

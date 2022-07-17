@@ -15,13 +15,15 @@ phases:
       - flake8 --count --max-line-length 88 app.py lambda_function cdk_deployment
       - echo Perform Unit Testing
       - pytest --pyargs lambda_function --cov lambda_function
-
+      - cdk synth
+      - aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 351967858401.dkr.ecr.us-east-2.amazonaws.com
 
   build:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
-
+      - docker build -t sdc_aws_processing_lambda lambda_function/.
+      - docker tag sdc_aws_processing_lambda:latest 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:latest
 
   post_build:
     commands:

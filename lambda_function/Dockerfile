@@ -29,7 +29,7 @@ WORKDIR ${ROOT}
 # Pull the latest official release of repo and copy it's file processor module into function directory
 RUN git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git --branch $(git -c 'versionsort.suffix=-' \
 ls-remote --exit-code --refs --sort='version:refname' --tags https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git \
-'*.*.*' | tail --lines=1 | cut --delimiter='/' --fields=3)
+'*' | tail --lines=1 | cut --delimiter='/' --fields=3)
 
 # Change rights on folder
 RUN chmod -R 777 sdc_aws_processing_lambda

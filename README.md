@@ -1,5 +1,8 @@
 # SWSOC File Processing Lambda Container
 
+| **CodeBuild Status** |![aws build status](https://codebuild.us-east-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiNi9WaG5pa1V4MUpoVURjRXlWc0w5d1lKR293RWJPSGtudmUzNHljd2JWaHZaQ09TVE12UTVOMWdFdU9rMFA1QWs0eCtLTW9vblV1emNwQ01HN0hqMm9vPSIsIml2UGFyYW1ldGVyU3BlYyI6IjdUVHlYZUZsc0dCV2lnUDAiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=main)|
+|-|-|
+
 ### **Base Image Used For Container:** https://github.com/HERMES-SOC/docker-lambda-base 
 
 ### **Description**:

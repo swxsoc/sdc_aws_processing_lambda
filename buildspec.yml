@@ -33,5 +33,5 @@ phases:
       - export TAG=$(date +%Y-%m-%d-%H-%M-%S)
       - docker tag sdc_aws_processing_lambda:latest sdc_aws_processing_lambda:$(printenv TAG)
       - docker push 351967858401.dkr.ecr.us-east-2.amazonaws.com/sdc_aws_processing_lambda:latest
-      - cdk bootstrap -y
-      - cdk deploy -y
+      - cdk bootstrap -y --require-approval never
+      - cdk deploy -y --require-approval never

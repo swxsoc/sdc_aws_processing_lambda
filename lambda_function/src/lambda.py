@@ -15,6 +15,7 @@ logger = logging.getLogger()
 # Debug used for development
 logger.setLevel(logging.DEBUG)
 
+
 def handler(event, context):
     """
     This is the lambda handler function that passes variables to

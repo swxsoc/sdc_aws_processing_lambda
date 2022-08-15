@@ -18,8 +18,8 @@ jobs:
         python -m pip install flake8 black
     - name: Lint  Code with Black
       run: |
-        black --check --diff app.py lambda_function cdk_deployment
+        black --check --diff lambda_function
     - name: Lint Code with Flake
       run: |
-        flake8 --count --max-line-length 88 app.py lambda_function cdk_deployment
+        flake8 --count --max-line-length 88 lambda_function
 

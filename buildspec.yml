@@ -33,26 +33,16 @@ phases:
       - echo ________________________________
 
       - echo Build Docker Image
-      - docker build -t 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG lambda_function/.
-      - echo ________________________________
+      - docker build -t 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest lambda_function/.
       
-      - echo Pushing the Docker image...
+      - echo Tagging Docker Image...
+      - docker tag 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG
+
+      - echo Pushing the Docker image with Tags...
+      - docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest
       - docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG
       - echo ________________________________
 
-      - echo Creating Zip Name...
-      - |
-        echo "Git Release Tag Script"
-        
-        TRIGGER=$CODEBUILD_WEBHOOK_TRIGGER
-        
-        if [[ $TRIGGER == *"tag/"* ]];then
-          GIT_TAG=${TRIGGER:4}
-          echo "Production Build, tagging with: $TAG"
-          docker tag 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$GIT_TAG
-          docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG
-        fi
-      - echo ________________________________
 
   post_build:
     commands:

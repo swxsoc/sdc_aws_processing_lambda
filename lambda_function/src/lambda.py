@@ -7,88 +7,83 @@ TODO: Skeleton Code for initial repo, logic still needs to be
 implemented and docstrings expanded
 """
 
-import logging
 import json
-from file_processor.file_processor import FileProcessor
+import os
 
-logger = logging.getLogger()
-# Debug used for development
-logger.setLevel(logging.DEBUG)
+# The below flake exceptions are to avoid the hermes.log writing
+# issue the above line solves
+from hermes_core import log  # noqa: E402
+from hermes_core.util import util  # noqa: E402
+from file_processor.file_processor import FileProcessor  # noqa: E402
+
+# This is so the hermes.log file writes to the correct location
 
 
 def handler(event, context):
     """
-    This is the lambda handler function that passes variables to
-    the function that handles the logic that initializes the
-    FileProcessor class in it's correct environment.
+    This is the lambda handler function that passes variables to the function that
+    handles the logic that initializes the FileProcessor class in it's correct
+    environment.
     """
-
     # Extract needed information from event
     try:
-        bucket = event["Bucket"]
-        file_key = event["FileKey"]
 
-        """
-        Pass required variables to process function and returns a
-        200 (Successful) / 500 (Error) HTTP response
-        """
-        response = process_file(bucket, file_key)
+        environment = os.getenv("LAMBDA_ENVIRONMENT")
+        if environment is None:
+            environment = "DEVELOPMENT"
 
-        return response
+        for s3_event in event["Records"]:
 
-    except BaseException as exception:
-        logger.error("Error occurred with Lambda Function: %s", exception)
-        return {
-            "statusCode": 500,
-            "body": json.dumps("Error Extracting Variables from Event"),
-        }
+            s3_bucket = s3_event["s3"]["bucket"]["name"]
+            file_key = s3_event["s3"]["object"]["key"]
+            # Pass required variables to sort function and returns a 200 (Successful)
+            # / 500 (Error) HTTP response
+            response = process_file(
+                environment=environment, s3_bucket=s3_bucket, file_key=file_key
+            )
+
+            return response
+
+    except BaseException as e:
+
+        # Pass required variables to sort function and returns a 200 (Successful)
+        # / 500 (Error) HTTP response
+        log.error({"status": "ERROR", "message": e})
+
+        return {"statusCode": 500, "body": json.dumps(f"Error Processing File: {e}")}
 
 
-def process_file(bucket, file_key):
+def process_file(s3_bucket, file_key, environment):
     """
     This is the main function that handles logic that initializes
     the FileProcessor class in it's correct environment.
     """
 
     # Production (Official Release) Environment / Local Development
-    if "dev_" not in file_key:
-        try:
-            logger.info("Initializing FileProcessor - Environment: Production")
-            process = FileProcessor(bucket, file_key)
-            logger.warning("FileProcessor Initialized Successfully")
-            process.process_file()
-
-            return {
-                "statusCode": 200,
-                "body": json.dumps("File Processed Successfully"),
-            }
-
-        except BaseException as exception:
-            logger.error("Error occurred with FileProcessor: %s", exception)
-
-            return {"statusCode": 500, "body": json.dumps("Error Processing File")}
-
-    # Development (Master Branch but not Official Release) Environment
-    else:
-        try:
-            # This will be used to process files marked with the prefix 'dev_'
-            # for the development pipeline (code in master but not in release).
+    try:
+        log.info(f"Initializing FileProcessor - Environment: {environment}")
+        # Parse file key to get instrument name
+        parsed_file_key = file_key.replace("unprocessed/", "")
+        science_file = util.parse_science_filename(parsed_file_key)
+        if not science_file["test"] or environment == "Production":
+            FileProcessor(
+                s3_bucket=s3_bucket, s3_object=file_key, environment=environment
+            )
+        else:
             # pylint: disable=import-outside-toplevel
             from dev_file_processor.file_processor import (
                 FileProcessor as DevFileProcessor,
             )
 
-            logger.info("Initializing FileProcessor - Environment: Development")
-            process = DevFileProcessor(bucket, file_key)
-            logger.info("FileProcessor Initialized Successfully")
-            process.process_file()
+            DevFileProcessor(
+                s3_bucket=s3_bucket, s3_object=file_key, environment=environment
+            )
 
-            return {
-                "statusCode": 200,
-                "body": json.dumps("File Processed Successfully"),
-            }
+            log.info("File Processed Successfully")
 
-        except BaseException as exception:
-            logger.error("Error occurred with FileProcessor: %s", exception)
+        return {"statusCode": 200, "body": json.dumps("File Processed Successfully")}
 
-            return {"statusCode": 500, "body": json.dumps("Error Processing File")}
+    except BaseException as e:
+        log.error({"status": "ERROR", "message": e})
+
+        return {"statusCode": 500, "body": json.dumps("Error Processing File")}

@@ -5,6 +5,10 @@ FROM public.ecr.aws/w5r9l1c8/swsoc-docker-lambda-base:latest
 ARG ROOT="/"
 ARG FUNCTION_DIR="/lambda_function/"
 
+COPY requirements.txt ${ROOT}
+
+RUN pip install -r requirements.txt
+
 # Change working directory to /function
 WORKDIR ${FUNCTION_DIR}
 

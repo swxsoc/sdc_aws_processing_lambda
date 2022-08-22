@@ -1,6 +1,0 @@
-hermes_core @ git+https://github.com/dbarrous/hermes_core.git
-pytest
-pytest-astropy 
-pytest-cov
-flake8 
-black

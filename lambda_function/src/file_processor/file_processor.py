@@ -7,7 +7,6 @@ TODO: Skeleton Code for initial repo, class still needs to be
 implemented including logging to DynamoDB + S3 log
 file and docstrings expanded
 """
-
 import boto3
 import botocore
 
@@ -130,7 +129,7 @@ class FileProcessor:
 
                 # Run Calibration on File (This will cause a ValueError
                 # if no calibration is found)
-                instrument_calibration.calibrate_file(file_key)
+                instrument_calibration.calibrate_file(parsed_file_key)
 
             except ValueError as e:
                 # Expected ValueError for Data Flow Test because no calibration
@@ -141,31 +140,32 @@ class FileProcessor:
                         "message": f"Expected Value Error for Data Flow Test: {e}",
                     }
                 )
-                pass
 
-            # Copy File to Instrument Bucket
-            new_file_key = file_key.replace("unprocessed/", "processed/")
-            self._move_object_directory(
-                source_bucket=self.instrument_bucket_name,
-                file_key=file_key,
-                new_file_key=new_file_key,
-            )
+                # Copy File to Instrument Bucket
+                new_file_key = file_key.replace("unprocessed/", "processed/")
 
-            if self._does_object_exists(
-                bucket=self.instrument_bucket_name, file_key=new_file_key
-            ):
-                # Remove File from Unprocessed Bucket
-                self._remove_object_from_bucket(
-                    bucket=self.instrument_bucket_name, file_key=file_key
+                log.error(file_key)
+                self._move_object_directory(
+                    source_bucket=self.instrument_bucket_name,
+                    file_key=file_key,
+                    new_file_key=new_file_key,
                 )
-                log.info(
-                    {
-                        "status": "INFO",
-                        "message": f"File {file_key} successfully processed",
-                    }
-                )
-        else:
-            raise ValueError("File does not exist in bucket")
+
+                if self._does_object_exists(
+                    bucket=self.instrument_bucket_name, file_key=new_file_key
+                ):
+                    # Remove File from Unprocessed Bucket
+                    self._remove_object_from_bucket(
+                        bucket=self.instrument_bucket_name, file_key=file_key
+                    )
+                    log.info(
+                        {
+                            "status": "INFO",
+                            "message": f"File {file_key} successfully processed",
+                        }
+                    )
+            else:
+                raise ValueError("File does not exist in bucket")
 
     def _does_object_exists(self, bucket, file_key):
         """
@@ -187,9 +187,7 @@ class FileProcessor:
             log.info(f"File {file_key} already exists in Bucket {bucket}")
             return True
 
-    def _move_object_directory(
-        self, source_bucket=None, file_key=None, new_file_key=None
-    ):
+    def _move_object_directory(self, source_bucket, file_key, new_file_key):
         """
         Function to copy file from S3 incoming bucket using bucket key
         to destination bucket
@@ -198,13 +196,19 @@ class FileProcessor:
 
         try:
             # Initialize S3 Client and Copy Source Dict
-            s3 = boto3.resource("s3")
 
             # Move S3 file from one folder to another
             if not self.dry_run:
-                print(file_key)
-                s3.Object(source_bucket, new_file_key).copy_from(CopySource=file_key)
-
+                s3 = boto3.client("s3")
+                copy_source = {"Bucket": source_bucket, "Key": file_key}
+                s3.copy(copy_source, source_bucket, new_file_key)
+                log.info(
+                    {
+                        "status": "INFO",
+                        "message": f"File {file_key} successfully"
+                        f"moved to {new_file_key}",
+                    }
+                )
             log.info(f"File {file_key} Successfully Moved to {new_file_key}")
 
         except botocore.exceptions.ClientError as e:

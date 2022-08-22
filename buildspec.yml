@@ -38,7 +38,10 @@ phases:
       - docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest
       - docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG
       - echo ________________________________
-
+      
+      - echo Updating Deployment
+      - aws codebuild start-build --project-name build_sdc_aws_pipeline_architecture --region us-east-2 --environment-variables-override name=LAMBDA_PIPELINE,value=PROCESSING,type=PLAINTEXT name=TAG,value=$TAG,type=PLAINTEXT
+      - echo ________________________________
 
   post_build:
     commands:

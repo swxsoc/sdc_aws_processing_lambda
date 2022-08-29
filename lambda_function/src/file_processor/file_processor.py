@@ -232,7 +232,7 @@ class FileProcessor:
         """
         try:
             current_year = date.today().year
-            current_month = date.today().year
+            current_month = date.today().month
             file_key_array = self.file_key.split("/")
             parsed_file_key = file_key_array[-1]
 

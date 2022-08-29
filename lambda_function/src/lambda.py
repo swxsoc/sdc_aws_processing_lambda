@@ -63,7 +63,8 @@ def process_file(s3_bucket, file_key, environment):
     try:
         log.info(f"Initializing FileProcessor - Environment: {environment}")
         # Parse file key to get instrument name
-        parsed_file_key = file_key.replace("unprocessed/", "")
+        file_key_array = file_key.split("/")
+        parsed_file_key = file_key_array[-1]
         science_file = util.parse_science_filename(parsed_file_key)
         if not science_file["test"] or environment == "Production":
             FileProcessor(

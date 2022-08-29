@@ -9,6 +9,7 @@ file and docstrings expanded
 """
 import boto3
 import botocore
+from datetime import date
 
 # The below flake exceptions are to avoid the hermes.log writing
 # issue the above line solves
@@ -89,7 +90,7 @@ class FileProcessor:
             try:
 
                 # Parse file key to get instrument name
-                parsed_file_key = file_key.replace("unprocessed/", "")
+                parsed_file_key = file_key.split("/")[file_key.length - 1]
                 science_file = util.parse_science_filename(parsed_file_key)
 
                 destination_bucket = INSTRUMENT_BUCKET_NAMES[science_file["instrument"]]
@@ -142,28 +143,14 @@ class FileProcessor:
                 )
 
                 # Copy File to Instrument Bucket
-                new_file_key = file_key.replace("unprocessed/", "processed/")
+                new_file_key = self._get_new_file_key(file_key)
 
-                log.error(file_key)
                 self._move_object_directory(
                     source_bucket=self.instrument_bucket_name,
                     file_key=file_key,
                     new_file_key=new_file_key,
                 )
 
-                if self._does_object_exists(
-                    bucket=self.instrument_bucket_name, file_key=new_file_key
-                ):
-                    # Remove File from Unprocessed Bucket
-                    self._remove_object_from_bucket(
-                        bucket=self.instrument_bucket_name, file_key=file_key
-                    )
-                    log.info(
-                        {
-                            "status": "INFO",
-                            "message": f"File {file_key} successfully processed",
-                        }
-                    )
             else:
                 raise ValueError("File does not exist in bucket")
 
@@ -216,24 +203,42 @@ class FileProcessor:
 
             raise e
 
-    def _remove_object_from_bucket(self, bucket, file_key):
+    def _get_datalevel(self, file_key):
         """
-        Function to copy file from S3 incoming bucket using bucket key
-        to destination bucket
+        Function to extract data level from file key
         """
-        log.info(f"Removing From {file_key} from {bucket}")
-
         try:
-            # Initialize S3 Client and Copy Source Dict
-            s3 = boto3.resource("s3")
-
-            # Copy S3 file from incoming bucket to destination bucket
-            if not self.dry_run:
-                s3.Object(bucket, file_key).delete()
-
-            log.info((f"File {file_key} Successfully Removed from {bucket}"))
-
-        except botocore.exceptions.ClientError as e:
+            current_level = util.VALID_DATA_LEVELS[file_key.split("/")[0]]
+            return current_level
+        except IndexError as e:
             log.error({"status": "ERROR", "message": e})
+            raise e
 
+    def _get_next_datalevel(self, file_key):
+        """
+        Function to extract next data level from file key
+        """
+        try:
+            current_level = util.VALID_DATA_LEVELS[self._get_datalevel(file_key)]
+            return util.VALID_DATA_LEVELS[current_level + 1]
+        except IndexError as e:
+            log.error({"status": "ERROR", "message": e})
+            raise e
+
+    def _get_new_file_key(self, file_key):
+        """
+        Function to create new file key for next data level
+        """
+        try:
+            current_year = date.today().year
+            current_month = date.today().year
+            parsed_file_key = file_key.split("/")[file_key.length - 1]
+
+            return (
+                f"{self._get_next_datalevel(file_key)}/"
+                f"{current_year}/{current_month}/"
+                f"{parsed_file_key}"
+            )
+        except IndexError as e:
+            log.error({"status": "ERROR", "message": e})
             raise e

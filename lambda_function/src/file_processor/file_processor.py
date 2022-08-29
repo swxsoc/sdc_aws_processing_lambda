@@ -90,7 +90,8 @@ class FileProcessor:
             try:
 
                 # Parse file key to get instrument name
-                parsed_file_key = file_key.split("/")[file_key.length - 1]
+                file_key_array = self.file_key.split("/")
+                parsed_file_key = file_key_array[-1]
                 science_file = util.parse_science_filename(parsed_file_key)
 
                 destination_bucket = INSTRUMENT_BUCKET_NAMES[science_file["instrument"]]
@@ -232,7 +233,8 @@ class FileProcessor:
         try:
             current_year = date.today().year
             current_month = date.today().year
-            parsed_file_key = file_key.split("/")[file_key.length - 1]
+            file_key_array = self.file_key.split("/")
+            parsed_file_key = file_key_array[-1]
 
             return (
                 f"{self._get_next_datalevel(file_key)}/"

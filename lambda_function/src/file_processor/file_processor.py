@@ -220,7 +220,7 @@ class FileProcessor:
         Function to extract next data level from file key
         """
         try:
-            current_level = util.VALID_DATA_LEVELS[self._get_datalevel(file_key)]
+            current_level = util.VALID_DATA_LEVELS.index(self._get_datalevel(file_key))
             return util.VALID_DATA_LEVELS[current_level + 1]
         except IndexError as e:
             log.error({"status": "ERROR", "message": e})

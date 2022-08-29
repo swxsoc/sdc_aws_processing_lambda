@@ -209,8 +209,9 @@ class FileProcessor:
         Function to extract data level from file key
         """
         try:
-            current_level = util.VALID_DATA_LEVELS[file_key.split("/")[0]]
-            return current_level
+            file_key_array = self.file_key.split("/")
+            parsed_level = file_key_array[0]
+            return parsed_level
         except IndexError as e:
             log.error({"status": "ERROR", "message": e})
             raise e

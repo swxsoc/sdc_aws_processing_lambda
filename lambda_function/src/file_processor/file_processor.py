@@ -234,6 +234,8 @@ class FileProcessor:
         try:
             current_year = date.today().year
             current_month = date.today().month
+            if current_month < 10:
+                current_month = f"0{current_month}"
             file_key_array = self.file_key.split("/")
             parsed_file_key = file_key_array[-1]
 

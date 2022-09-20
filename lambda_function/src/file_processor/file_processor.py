@@ -9,7 +9,8 @@ file and docstrings expanded
 """
 import boto3
 import botocore
-from datetime import date
+from datetime import date, datetime
+import uuid
 
 # The below flake exceptions are to avoid the hermes.log writing
 # issue the above line solves
@@ -190,6 +191,19 @@ class FileProcessor:
                 s3 = boto3.client("s3")
                 copy_source = {"Bucket": source_bucket, "Key": file_key}
                 s3.copy(copy_source, source_bucket, new_file_key)
+                # Log to DynamoDB Table with uuid id
+                boto3.client("dynamodb").put_item(
+                    TableName="aws_sdc_s3_log_dynamodb_table",
+                    Item={
+                        "id": {"S": str(uuid.uuid4())},
+                        "source_bucket": {"S": source_bucket},
+                        "destination_bucket": {"S": source_bucket},
+                        "file_key": {"S": file_key},
+                        "new_file_key": {"S": new_file_key},
+                        "action_type": {"S": "PUT"},
+                        "timestamp": {"S": datetime.utcnow().isoformat()},
+                    },
+                )
                 log.info(
                     {
                         "status": "INFO",

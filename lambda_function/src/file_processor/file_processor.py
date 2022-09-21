@@ -9,7 +9,7 @@ file and docstrings expanded
 """
 import boto3
 import botocore
-from datetime import date
+from datetime import date, datetime
 import time
 
 # The below flake exceptions are to avoid the hermes.log writing
@@ -302,8 +302,8 @@ class FileProcessor:
                                 },
                             ],
                             "MeasureName": "timestamp",
-                            "MeasureValue": action_type,
-                            "MeasureValueType": "VARCHAR",
+                            "MeasureValue": str(datetime.utcnow().timestamp()),
+                            "MeasureValueType": "DOUBLE",
                         },
                     ],
                 )

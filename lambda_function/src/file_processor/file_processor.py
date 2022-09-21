@@ -302,8 +302,8 @@ class FileProcessor:
                                 },
                             ],
                             "MeasureName": "timestamp",
-                            "MeasureValue": str(datetime.utcnow().timestamp()),
-                            "MeasureValueType": "DOUBLE",
+                            "MeasureValue": action_type,
+                            "MeasureValueType": "VARCHAR",
                         },
                     ],
                 )

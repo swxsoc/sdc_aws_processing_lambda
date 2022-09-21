@@ -9,7 +9,7 @@ file and docstrings expanded
 """
 import boto3
 import botocore
-from datetime import date, datetime
+from datetime import date
 import time
 
 # The below flake exceptions are to avoid the hermes.log writing

@@ -302,7 +302,7 @@ class FileProcessor:
                                 },
                             ],
                             "MeasureName": "timestamp",
-                            "MeasureValue": str(datetime.datetime.utcnow().timestamp()),
+                            "MeasureValue": str(datetime.utcnow().timestamp()),
                             "MeasureValueType": "DOUBLE",
                         },
                     ],

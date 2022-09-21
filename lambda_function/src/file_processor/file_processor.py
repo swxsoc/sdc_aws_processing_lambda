@@ -10,7 +10,7 @@ file and docstrings expanded
 import boto3
 import botocore
 from datetime import date, datetime
-import uuid
+import time
 
 # The below flake exceptions are to avoid the hermes.log writing
 # issue the above line solves
@@ -191,18 +191,13 @@ class FileProcessor:
                 s3 = boto3.client("s3")
                 copy_source = {"Bucket": source_bucket, "Key": file_key}
                 s3.copy(copy_source, source_bucket, new_file_key)
-                # Log to DynamoDB Table with uuid id
-                boto3.client("dynamodb").put_item(
-                    TableName="aws_sdc_s3_log_dynamodb_table",
-                    Item={
-                        "id": {"S": str(uuid.uuid4())},
-                        "source_bucket": {"S": source_bucket},
-                        "destination_bucket": {"S": source_bucket},
-                        "file_key": {"S": file_key},
-                        "new_file_key": {"S": new_file_key},
-                        "action_type": {"S": "PUT"},
-                        "timestamp": {"S": datetime.utcnow().isoformat()},
-                    },
+                # Log added file to Incoming Bucket in Timestream
+                self._log_to_timestream(
+                    action_type="PUT",
+                    file_key=file_key,
+                    new_file_key=new_file_key,
+                    source_bucket=source_bucket,
+                    destination_bucket=source_bucket,
                 )
                 log.info(
                     {
@@ -260,4 +255,62 @@ class FileProcessor:
             )
         except IndexError as e:
             log.error({"status": "ERROR", "message": e})
+            raise e
+
+    def _log_to_timestream(
+        self,
+        action_type,
+        file_key,
+        new_file_key=None,
+        source_bucket=None,
+        destination_bucket=None,
+    ):
+        """
+        Function to log to Timestream
+        """
+        log.info("Logging to Timestream")
+        CURRENT_TIME = str(int(time.time() * 1000))
+        try:
+            # Initialize Timestream Client
+            timestream = boto3.client("timestream-write")
+
+            if not source_bucket and not destination_bucket:
+                raise ValueError("A Source or Destination Buckets is required")
+
+            # Write to Timestream
+            if not self.dry_run:
+                timestream.write_records(
+                    DatabaseName="sampleDB",
+                    TableName="test",
+                    Records=[
+                        {
+                            "Time": CURRENT_TIME,
+                            "Dimensions": [
+                                {"Name": "action_type", "Value": action_type},
+                                {
+                                    "Name": "source_bucket",
+                                    "Value": source_bucket or "N/A",
+                                },
+                                {
+                                    "Name": "destination_bucket",
+                                    "Value": destination_bucket or "N/A",
+                                },
+                                {"Name": "file_key", "Value": file_key},
+                                {
+                                    "Name": "new_file_key",
+                                    "Value": new_file_key or "N/A",
+                                },
+                            ],
+                            "MeasureName": "timestamp",
+                            "MeasureValue": str(datetime.datetime.utcnow().timestamp()),
+                            "MeasureValueType": "DOUBLE",
+                        },
+                    ],
+                )
+
+            log.info((f"File {file_key} Successfully Logged to Timestream"))
+
+        except botocore.exceptions.ClientError as e:
+            log.error({"status": "ERROR", "message": e})
+
             raise e

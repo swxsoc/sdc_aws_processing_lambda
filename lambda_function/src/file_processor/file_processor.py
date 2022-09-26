@@ -100,12 +100,15 @@ class FileProcessor:
                 # NAMES[science_file["instrument"]]
                 if "MAG" in file_key:
                     instrument = "nemisis"
-                if "EEA" in file_key:
+                elif "EEA" in file_key:
                     instrument = "eea"
-                if "SPANI" in file_key:
+                elif "SPANI" in file_key:
                     instrument = "spani"
-                if "MERIT" in file_key:
+                elif "MERIT" in file_key:
                     instrument = "merit"
+                else:
+                    raise ValueError("Instrument Not Found")
+
                 destination_bucket = INSTRUMENT_BUCKET_NAMES[instrument]
                 log.info(
                     f"Destination Bucket Parsed Successfully: {destination_bucket}"
@@ -157,7 +160,7 @@ class FileProcessor:
                 # Copy File to Instrument Bucket
                 new_file_key = self._get_new_file_key(file_key)
 
-                self._move_object_directory(
+                self._process_object(
                     source_bucket=self.instrument_bucket_name,
                     file_key=file_key,
                     new_file_key=new_file_key,
@@ -186,7 +189,7 @@ class FileProcessor:
             log.info(f"File {file_key} already exists in Bucket {bucket}")
             return True
 
-    def _move_object_directory(self, source_bucket, file_key, new_file_key):
+    def _process_object(self, source_bucket, file_key, new_file_key):
         """
         Function to copy file from S3 incoming bucket using bucket key
         to destination bucket
@@ -212,8 +215,8 @@ class FileProcessor:
                 log.info(
                     {
                         "status": "INFO",
-                        "message": f"File {file_key} successfully"
-                        f"moved to {new_file_key}",
+                        "message": f"File {file_key} successfully "
+                        f"processed to {new_file_key}",
                     }
                 )
             log.info(f"File {file_key} Successfully Moved to {new_file_key}")

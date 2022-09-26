@@ -93,10 +93,20 @@ class FileProcessor:
                 # Parse file key to get instrument name
                 file_key_array = self.file_key.split("/")
                 parsed_file_key = file_key_array[-1]
-                science_file = util.parse_science_filename(parsed_file_key)
+                # science_file = util.parse_science_filename
+                # (parsed_file_key)
 
-                destination_bucket = INSTRUMENT_BUCKET_NAMES[science_file["instrument"]]
-
+                # destination_bucket = INSTRUMENT_BUCKET_
+                # NAMES[science_file["instrument"]]
+                if "MAG" in file_key:
+                    instrument = "nemisis"
+                if "EEA" in file_key:
+                    instrument = "eea"
+                if "SPANI" in file_key:
+                    instrument = "spani"
+                if "MERIT" in file_key:
+                    instrument = "merit"
+                destination_bucket = INSTRUMENT_BUCKET_NAMES[instrument]
                 log.info(
                     f"Destination Bucket Parsed Successfully: {destination_bucket}"
                 )

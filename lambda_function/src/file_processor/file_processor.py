@@ -257,11 +257,13 @@ class FileProcessor:
                 current_month = f"0{current_month}"
             file_key_array = self.file_key.split("/")
             parsed_file_key = file_key_array[-1]
-
+            current_data_level = self._get_datalevel(file_key)
+            next_data_level = self._get_next_datalevel(file_key)
+            new_file_key = parsed_file_key.replace(current_data_level, next_data_level)
             return (
-                f"{self._get_next_datalevel(file_key)}/"
+                f"{next_data_level}"
                 f"{current_year}/{current_month}/"
-                f"{parsed_file_key}"
+                f"{new_file_key}"
             )
         except IndexError as e:
             log.error({"status": "ERROR", "message": e})

@@ -261,7 +261,7 @@ class FileProcessor:
             next_data_level = self._get_next_datalevel(file_key)
             new_file_key = parsed_file_key.replace(current_data_level, next_data_level)
             return (
-                f"{next_data_level}"
+                f"{next_data_level}/"
                 f"{current_year}/{current_month}/"
                 f"{new_file_key}"
             )

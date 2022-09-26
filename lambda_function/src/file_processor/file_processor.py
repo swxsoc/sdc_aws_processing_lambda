@@ -96,7 +96,7 @@ class FileProcessor:
                 # science_file = util.parse_science_filename
                 # (parsed_file_key)
 
-                # destination_bucket = INSTRUMENT_BUCKET_
+                # destination_bucket = INSTRUMENT_BUCKES
                 # NAMES[science_file["instrument"]]
                 if "MAG" in file_key:
                     instrument = "nemisis"
@@ -287,10 +287,15 @@ class FileProcessor:
             if not source_bucket and not destination_bucket:
                 raise ValueError("A Source or Destination Buckets is required")
 
+            # connect to s3 - assuming your creds are all
+            # set up and you have boto3 installed
             s3 = boto3.resource("s3")
 
             # get the bucket
+
             bucket = s3.Bucket(destination_bucket)
+            if action_type == "DELETE":
+                bucket = s3.Bucket(source_bucket)
 
             # use loop and count increment
             count_obj = 0
@@ -323,11 +328,11 @@ class FileProcessor:
                                 },
                                 {
                                     "Name": "current file count",
-                                    "Value": count_obj or "N/A",
+                                    "Value": str(count_obj) or "N/A",
                                 },
                             ],
                             "MeasureName": "timestamp",
-                            "MeasureValue": str(datetime.utcnow().timestamp()),
+                            "MeasureValue": str(datetime.datetime.utcnow().timestamp()),
                             "MeasureValueType": "DOUBLE",
                         },
                     ],

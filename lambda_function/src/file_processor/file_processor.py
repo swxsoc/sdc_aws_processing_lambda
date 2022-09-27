@@ -257,7 +257,14 @@ class FileProcessor:
             parsed_file_key = file_key_array[-1]
             current_data_level = self._get_datalevel(file_key)
             next_data_level = self._get_next_datalevel(file_key)
+            print(parsed_file_key)
+            science_file = util.parse_science_filename(parsed_file_key)
+            print(science_file)
+            new_file_key = (
+                f"{next_data_level}/{current_year}/{current_month}/{parsed_file_key}"
+            )
             new_file_key = parsed_file_key.replace(current_data_level, next_data_level)
+
             return (
                 f"{next_data_level}/"
                 f"{current_year}/{current_month}/"

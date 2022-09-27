@@ -97,11 +97,8 @@ class FileProcessor:
 
                 # Parse file key to get instrument name
                 file_key_array = self.file_key.split("/")
-                print(file_key_array)
                 parsed_file_key = file_key_array[-1]
-                print(f"File Key Parsed Successfully: {parsed_file_key}")
                 science_file = util.parse_science_filename(parsed_file_key)
-                print(science_file)
 
                 destination_bucket = INSTRUMENT_BUCKET_NAMES[science_file["instrument"]]
                 log.info(
@@ -257,7 +254,6 @@ class FileProcessor:
             parsed_file_key = file_key_array[-1]
             current_data_level = self._get_datalevel(file_key)
             next_data_level = self._get_next_datalevel(file_key)
-            print(parsed_file_key)
             science_file = util.parse_science_filename(parsed_file_key)
             science_file["level"] = next_data_level
             processed_name = util.create_science_filename(
@@ -266,13 +262,10 @@ class FileProcessor:
                 level=science_file["level"],
                 version="0.0.1",
             )
-            print(science_file)
             new_file_key = (
-                f"{next_data_level}/{current_year}/{current_month}/{processed_name}.cdf"
+                f"{next_data_level}/{current_year}/{current_month}/{processed_name}"
             )
-            print(new_file_key)
             new_file_key = new_file_key.replace(current_data_level, next_data_level)
-            print(new_file_key)
             return (
                 f"{next_data_level}/"
                 f"{current_year}/{current_month}/"
@@ -315,7 +308,6 @@ class FileProcessor:
             # use loop and count increment
             count_obj = 0
             for i in bucket.objects.all():
-                print(i.key)
                 count_obj = count_obj + 1
 
             # Write to Timestream

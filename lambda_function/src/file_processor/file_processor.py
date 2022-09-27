@@ -260,13 +260,19 @@ class FileProcessor:
             print(parsed_file_key)
             science_file = util.parse_science_filename(parsed_file_key)
             science_file["level"] = next_data_level
-            processed_name = util.create_science_filename(science_file)
+            processed_name = util.create_science_filename(
+                time=science_file["time"],
+                instrument=science_file["instrument"],
+                level=science_file["level"],
+                version=science_file["version"],
+            )
             print(science_file)
             new_file_key = (
                 f"{next_data_level}/{current_year}/{current_month}/{processed_name}.cdf"
             )
-            new_file_key = parsed_file_key.replace(current_data_level, next_data_level)
-
+            print(new_file_key)
+            new_file_key = new_file_key.replace(current_data_level, next_data_level)
+            print(new_file_key)
             return (
                 f"{next_data_level}/"
                 f"{current_year}/{current_month}/"

@@ -266,11 +266,7 @@ class FileProcessor:
                 f"{next_data_level}/{current_year}/{current_month}/{processed_name}"
             )
             new_file_key = new_file_key.replace(current_data_level, next_data_level)
-            return (
-                f"{next_data_level}/"
-                f"{current_year}/{current_month}/"
-                f"{new_file_key}"
-            )
+            return new_file_key
         except IndexError as e:
             log.error({"status": "ERROR", "message": e})
             raise e

@@ -76,7 +76,7 @@ class FileProcessor:
 
         # Variable that determines environment
         self.environment = environment
-        print("test")
+
         # Variable that determines if FileProcessor performs a Dry Run
         self.dry_run = dry_run
         if self.dry_run:
@@ -97,9 +97,12 @@ class FileProcessor:
 
                 # Parse file key to get instrument name
                 file_key_array = self.file_key.split("/")
+                print(file_key_array)
                 parsed_file_key = file_key_array[-1]
+                print(f"File Key Parsed Successfully: {parsed_file_key}")
                 science_file = util.parse_science_filename
                 (parsed_file_key)
+                print(science_file)
 
                 destination_bucket = INSTRUMENT_BUCKET_NAMES[science_file["instrument"]]
                 log.info(

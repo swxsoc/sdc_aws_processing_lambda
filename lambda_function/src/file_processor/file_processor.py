@@ -100,8 +100,7 @@ class FileProcessor:
                 print(file_key_array)
                 parsed_file_key = file_key_array[-1]
                 print(f"File Key Parsed Successfully: {parsed_file_key}")
-                science_file = util.parse_science_filename
-                (parsed_file_key)
+                science_file = util.parse_science_filename(parsed_file_key)
                 print(science_file)
 
                 destination_bucket = INSTRUMENT_BUCKET_NAMES[science_file["instrument"]]

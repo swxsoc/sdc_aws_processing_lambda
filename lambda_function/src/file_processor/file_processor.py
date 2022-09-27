@@ -264,7 +264,7 @@ class FileProcessor:
                 time=science_file["time"],
                 instrument=science_file["instrument"],
                 level=science_file["level"],
-                version=science_file["version"],
+                version="0.0.1",
             )
             print(science_file)
             new_file_key = (

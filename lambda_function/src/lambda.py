@@ -9,15 +9,17 @@ implemented and docstrings expanded
 
 import json
 import os
+import logging
 
 # The below flake exceptions are to avoid the hermes.log writing
 # issue the above line solves
 from hermes_core import log  # noqa: E402
 
-from hermes_core.util import util  # noqa: E402
 from file_processor.file_processor import FileProcessor  # noqa: E402
 
-# This is so the hermes.log file writes to the correct location
+# To remove boto3 noisy debug logging
+logging.getLogger("botocore").setLevel(logging.CRITICAL)
+logging.getLogger("boto3").setLevel(logging.CRITICAL)
 
 
 def handler(event, context):
@@ -64,11 +66,11 @@ def process_file(s3_bucket, file_key, environment):
     try:
         log.info(f"Initializing FileProcessor - Environment: {environment}")
         # Parse file key to get instrument name
-        file_key_array = file_key.split("/")
-        parsed_file_key = file_key_array[-1]
-        science_file = util.parse_science_filename(parsed_file_key)
-
-        if not science_file["test"] or environment == "Production":
+        # file_key_array = file_key.split("/")
+        # parsed_file_key = file_key_array[-1]
+        # science_file = util.parse_science_filename(parsed_file_key)
+        # print(science_file)
+        if environment == "Production":
             FileProcessor(
                 s3_bucket=s3_bucket, s3_object=file_key, environment=environment
             )

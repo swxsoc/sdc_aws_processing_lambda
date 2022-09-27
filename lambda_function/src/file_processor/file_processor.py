@@ -11,6 +11,7 @@ import boto3
 import botocore
 from datetime import date, datetime
 import time
+import logging
 
 # The below flake exceptions are to avoid the hermes.log writing
 # issue the above line solves
@@ -27,6 +28,10 @@ INSTRUMENT_BUCKET_NAMES = {
     "merit": "hermes-merit",
     "spani": "hermes-spani",
 }
+
+# To remove boto3 noisy debug logging
+logging.getLogger("botocore").setLevel(logging.CRITICAL)
+logging.getLogger("boto3").setLevel(logging.CRITICAL)
 
 
 class FileProcessor:
@@ -71,7 +76,7 @@ class FileProcessor:
 
         # Variable that determines environment
         self.environment = environment
-
+        print("test")
         # Variable that determines if FileProcessor performs a Dry Run
         self.dry_run = dry_run
         if self.dry_run:

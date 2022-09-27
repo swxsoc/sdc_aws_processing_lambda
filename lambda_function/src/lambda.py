@@ -14,7 +14,7 @@ import os
 # issue the above line solves
 from hermes_core import log  # noqa: E402
 
-# from hermes_core.util import util  # noqa: E402
+from hermes_core.util import util  # noqa: E402
 from file_processor.file_processor import FileProcessor  # noqa: E402
 
 # This is so the hermes.log file writes to the correct location
@@ -64,11 +64,11 @@ def process_file(s3_bucket, file_key, environment):
     try:
         log.info(f"Initializing FileProcessor - Environment: {environment}")
         # Parse file key to get instrument name
-        # file_key_array = file_key.split("/")
-        # parsed_file_key = file_key_array[-1]
-        # science_file = util.parse_science_filename(parsed_file_key)
+        file_key_array = file_key.split("/")
+        parsed_file_key = file_key_array[-1]
+        science_file = util.parse_science_filename(parsed_file_key)
 
-        if environment == "Production":
+        if not science_file["test"] or environment == "Production":
             FileProcessor(
                 s3_bucket=s3_bucket, s3_object=file_key, environment=environment
             )

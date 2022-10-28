@@ -12,22 +12,46 @@ import botocore
 from datetime import date, datetime
 import time
 import logging
+import yaml
 
-# The below flake exceptions are to avoid the hermes.log writing
-# issue the above line solves
-from hermes_core import log  # noqa: E402
-from hermes_core.util import util  # noqa: E402
+# Initialize constants to be parsed from config.yaml
+MISSION_NAME = ""
+INSTR_NAMES = []
+MISSION_PKG = ""
+
+# Read YAML file and parse variables
+try:
+    with open("./config.yaml", "r") as f:
+        config = yaml.safe_load(f)
+        print("config.yaml loaded successfully")
+        MISSION_NAME = config["MISSION_NAME"]
+        INSTR_NAMES = config["INSTR_NAMES"]
+        MISSION_PKG = config["MISSION_PKG"]
+
+except FileNotFoundError:
+    print("config.yaml not found. Check to make sure it exists in the root directory.")
+    exit(1)
+
+
+# Initialize other constants after loading YAML file
+INSTR_PKG = [f"{MISSION_NAME}_{this_instr}" for this_instr in INSTR_NAMES]
+INSTR_TO_BUCKET_NAME = {
+    this_instr: f"{MISSION_NAME}-{this_instr}" for this_instr in INSTR_NAMES
+}
+INSTR_TO_PKG = dict(zip(INSTR_NAMES, INSTR_PKG))
+
+
+# Import logging from mission package
+mission_pkg = __import__(MISSION_PKG)
+log = getattr(mission_pkg, "log")
+
+# Import logging and util from mission package
+mission_pkg = __import__(MISSION_PKG)
+log = getattr(mission_pkg, "log")
+util = getattr(mission_pkg, "util").util
 
 # Starts boto3 session so it gets access to needed credentials
 session = boto3.Session()
-
-# Dict with instrument bucket names
-INSTRUMENT_BUCKET_NAMES = {
-    "eea": "hermes-eea",
-    "nemisis": "hermes-nemisis",
-    "merit": "hermes-merit",
-    "spani": "hermes-spani",
-}
 
 # To remove boto3 noisy debug logging
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
@@ -99,44 +123,23 @@ class FileProcessor:
                 file_key_array = self.file_key.split("/")
                 parsed_file_key = file_key_array[-1]
                 science_file = util.parse_science_filename(parsed_file_key)
-
-                destination_bucket = INSTRUMENT_BUCKET_NAMES[science_file["instrument"]]
+                this_instr = science_file["instrument"]
+                destination_bucket = INSTR_TO_BUCKET_NAME[this_instr]
                 log.info(
                     f"Destination Bucket Parsed Successfully: {destination_bucket}"
                 )
 
-                instrument_calibration = ""
+                # Dynamically import instrument package
+                instr_pkg = __import__(
+                    f"{INSTR_TO_PKG[this_instr]}.calibration", fromlist=["calibration"]
+                )
+                calibration = getattr(instr_pkg, "calibration")
 
-                if destination_bucket == "hermes-eea":
-                    from hermes_eea.calibration import calibration
-
-                    log.info("Using hermes_eea module for calibration")
-                    instrument_calibration = calibration
-
-                elif destination_bucket == "hermes-nemisis":
-                    from hermes_nemisis.calibration import calibration
-
-                    log.info("Using hermes_nemisis module for calibration")
-                    instrument_calibration = calibration
-
-                elif destination_bucket == "hermes-merit":
-                    from hermes_merit.calibration import calibration
-
-                    log.info("Using hermes_merit module for calibration")
-                    instrument_calibration = calibration
-
-                elif destination_bucket == "hermes-spani":
-                    from hermes_spani.calibration import calibration
-
-                    log.info("Using hermes_spani module for calibration")
-                    instrument_calibration = calibration
-                else:
-                    log.error({"status": "ERROR", "message": "Instrument Not Found"})
-                    raise KeyError("Instrument Not Found")
+                log.info(f"Using {INSTR_TO_PKG[this_instr]} module for calibration")
 
                 # Run Calibration on File (This will cause a ValueError
                 # if no calibration is found)
-                instrument_calibration.calibrate_file(parsed_file_key)
+                calibration.calibrate_file(parsed_file_key)
 
             except ValueError as e:
                 # Expected ValueError for Data Flow Test because no calibration
@@ -234,9 +237,8 @@ class FileProcessor:
         Function to extract next data level from file key
         """
         try:
-            datalevels = ["l0", "l1", "ql"]
-            current_level = datalevels.index(self._get_datalevel(file_key))
-            return datalevels[current_level + 1]
+            current_level = util.VALID_DATA_LEVELS.index(self._get_datalevel(file_key))
+            return util.VALID_DATA_LEVELS[current_level + 1]
         except IndexError as e:
             log.error({"status": "ERROR", "message": e})
             raise e

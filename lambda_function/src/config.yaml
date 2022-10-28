@@ -1,0 +1,13 @@
+# Mission name
+MISSION_NAME: 'hermes'
+
+# Package name for mission 
+MISSION_PKG: 'hermes_core'
+
+# Instrument names used in the mission. 
+# The names are used to dynamically import the instrument packages.
+INSTR_NAMES: 
+- "eea"
+- "nemisis"
+- "merit"
+- "spani"

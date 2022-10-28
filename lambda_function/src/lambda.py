@@ -11,11 +11,8 @@ import json
 import os
 import logging
 
-# The below flake exceptions are to avoid the hermes.log writing
-# issue the above line solves
-from hermes_core import log  # noqa: E402
 
-from file_processor.file_processor import FileProcessor  # noqa: E402
+from file_processor.file_processor import FileProcessor, log  # noqa: E402
 
 # To remove boto3 noisy debug logging
 logging.getLogger("botocore").setLevel(logging.CRITICAL)

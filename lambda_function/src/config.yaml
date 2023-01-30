@@ -11,3 +11,6 @@ INSTR_NAMES:
 - "nemisis"
 - "merit"
 - "spani"
+
+# Timestream region
+TSD_REGION: 'us-east-1'

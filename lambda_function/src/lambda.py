@@ -40,10 +40,7 @@ def handler(event, context) -> dict:
             environment = "DEVELOPMENT"
 
         # Check if SNS or S3 event
-        if "Message" in event:
-            records = json.loads(event["Message"])["Records"]
-        else:
-            records = event["Records"]
+        records = event["Records"][0]["Message"]["Records"]
 
         # Parse message from SNS Notification
 

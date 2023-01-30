@@ -7,6 +7,10 @@ ARG FUNCTION_DIR="/lambda_function/"
 
 COPY requirements.txt ${ROOT}
 
+# Update pip and install setuptools
+RUN pip install --upgrade pip setuptools
+
+# Install requirements
 RUN pip install -r requirements.txt
 
 # Change working directory to /function

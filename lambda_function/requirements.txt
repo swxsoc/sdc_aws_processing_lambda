@@ -2,7 +2,6 @@ hermes_spani @ git+https://github.com/HERMES-SOC/hermes_spani.git
 hermes_eea @ git+https://github.com/HERMES-SOC/hermes_eea.git
 hermes_nemisis @ git+https://github.com/HERMES-SOC/hermes_nemisis.git
 hermes_merit @ git+https://github.com/HERMES-SOC/hermes_merit.git
-hermes_core @ git+https://github.com/HERMES-SOC/hermes_core.git # for hermes instrument packages
 pytest
 pytest-astropy 
 pytest-cov

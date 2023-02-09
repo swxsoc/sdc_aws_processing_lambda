@@ -7,3 +7,4 @@ pytest-astropy
 pytest-cov
 flake8 
 black
+slack_sdk

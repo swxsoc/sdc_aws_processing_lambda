@@ -34,7 +34,6 @@ def handler(event, context) -> dict:
     """
     # Extract needed information from event
     try:
-
         environment = os.getenv("LAMBDA_ENVIRONMENT")
         if environment is None:
             environment = "DEVELOPMENT"
@@ -44,7 +43,6 @@ def handler(event, context) -> dict:
 
         # Parse message from SNS Notification
         for s3_event in records:
-
             # Extract needed information from event
             s3_bucket = s3_event["s3"]["bucket"]["name"]
             file_key = s3_event["s3"]["object"]["key"]
@@ -84,7 +82,6 @@ def environment_setup(s3_bucket: str, file_key: str, environment: str) -> dict:
     try:
         log.info(f"Initializing FileProcessor - Environment: {environment}")
         if environment == "Production":
-
             # Initialize FileProcessor class
             FileProcessor(
                 s3_bucket=s3_bucket, file_key=file_key, environment=environment

@@ -286,7 +286,7 @@ class FileProcessor:
                 "success": "#2ecc71",
                 "error": "#ff0000",
             }
-            ct = datetime.datetime.now()
+            ct = datetime.now()
             ts = ct.strftime("%y-%m-%d %H:%M:%S")
             slack_client.chat_postMessage(
                 channel=slack_channel,

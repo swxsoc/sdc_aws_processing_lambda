@@ -209,8 +209,8 @@ class FileProcessor:
                                 slack_client=self.slack_client,
                                 slack_channel=self.slack_channel,
                                 slack_message=(
-                                    f"File ({new_file_key}) "
-                                    "has been successfully processed and "
+                                    f"File ({new_file_path}) has "
+                                    "been successfully processed and "
                                     f"uploaded to {destination_bucket}.",
                                 ),
                             )
@@ -235,7 +235,7 @@ class FileProcessor:
                         slack_client=self.slack_client,
                         slack_channel=self.slack_channel,
                         slack_message=(
-                            f"Error Processing File ({new_file_key})"
+                            f"Error Processing File ({new_file_path})"
                             f"from {destination_bucket}.",
                         ),
                         alert_type="error",

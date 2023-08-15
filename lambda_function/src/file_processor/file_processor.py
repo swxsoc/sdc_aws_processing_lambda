@@ -3,10 +3,12 @@ This Module contains the FileProcessor class that will distinguish
 the appropriate HERMES intrument library to use when processing
 the file based off which bucket the file is located in.
 """
+import boto3
 import botocore
 import os
 import os.path
 import json
+from pathlib import Path
 from slack_sdk.errors import SlackApiError
 
 from sdc_aws_utils.logging import log, configure_logger
@@ -26,6 +28,9 @@ from sdc_aws_utils.aws import (
     create_s3_file_key,
 )
 from sdc_aws_utils.slack import get_slack_client, send_pipeline_notification
+from cdftracker.database import create_engine
+from cdftracker.database.tables import create_tables
+from cdftracker.tracker import tracker
 
 # Configure logger
 configure_logger()
@@ -169,6 +174,35 @@ class FileProcessor:
                 }
             )
 
+        secret_arn = os.getenv("RDS_SECRET_ARN", None)
+        if secret_arn:
+            try:
+                # Get Database Credentials
+                session = boto3.session.Session()
+                client = session.client(service_name="secretsmanager")
+                response = client.get_secret_value(SecretId=secret_arn)
+                secret = json.loads(response["SecretString"])
+                connection_string = (
+                    f"postgresql://{secret['username']}:{secret['password']}@"
+                    f"{secret['host']}:{secret['port']}/{secret['dbname']}"
+                )
+                # Initialize the database engine
+                self.database_engine = create_engine(connection_string)
+                # Setup the database tables if they do not exist
+                create_tables(self.database_engine)
+                # Set tracker to CDFTracker
+                self.tracker = tracker.CDFTracker(
+                    self.database_engine, science_filename_parser
+                )
+
+            except Exception as e:
+                self.tracker = None
+                log.error(
+                    {
+                        "status": "ERROR",
+                        "message": f"Error when initializing database engine: {e}",
+                    }
+                )
         # Process File
         self._process_file()
 
@@ -207,6 +241,9 @@ class FileProcessor:
                 science_file = science_filename_parser(parsed_file_key)
                 this_instr = science_file["instrument"]
                 destination_bucket = get_instrument_bucket(this_instr, self.environment)
+                if self.tracker and science_file["level"] == "l0":
+                    # If level is L0 should be tracked in CDF
+                    self.tracker.track(file_path)
 
                 log.info(
                     f"Destination Bucket Parsed Successfully: {destination_bucket}"
@@ -224,11 +261,12 @@ class FileProcessor:
                 # Process file
                 try:
                     # Get name of new file
-                    new_file_path = calibration.process_file(file_path)[0].name
+                    new_file_path = calibration.process_file(file_path)[0]
+                    new_file_pathname = new_file_path.name
 
                     # Get new file key
                     new_file_key = create_s3_file_key(
-                        science_filename_parser, new_file_path
+                        science_filename_parser, new_file_pathname
                     )
 
                     # Upload file to destination bucket if not a dry run
@@ -237,16 +275,20 @@ class FileProcessor:
                         upload_file_to_s3(
                             s3_client=self.s3_client,
                             destination_bucket=destination_bucket,
-                            filename=new_file_path,
+                            filename=new_file_pathname,
                             file_key=new_file_key,
                         )
+
+                        if self.tracker:
+                            # Track file in CDF
+                            self.tracker.track(Path(new_file_path))
 
                         if self.slack_client:
                             # Send Slack Notification
                             send_pipeline_notification(
                                 slack_client=self.slack_client,
                                 slack_channel=self.slack_channel,
-                                path=new_file_path,
+                                path=new_file_pathname,
                                 alert_type="processed",
                             )
 
@@ -272,7 +314,7 @@ class FileProcessor:
                     send_pipeline_notification(
                         slack_client=self.slack_client,
                         slack_channel=self.slack_channel,
-                        path=new_file_path,
+                        path=parsed_file_key,
                         alert_type="processed_error",
                     )
                 raise e

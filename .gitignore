@@ -21,3 +21,6 @@ build
 *.log
 .coverage
 htmlcov
+
+# Mac hidden files
+.DS_Store

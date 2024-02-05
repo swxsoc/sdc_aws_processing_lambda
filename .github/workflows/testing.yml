@@ -15,6 +15,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Install CDF library on Ubuntu
+      run: |
+        wget https://sdc-aws-support.s3.amazonaws.com/cdf-binaries/latest-cdf.zip
+        unzip latest-cdf.zip
+        echo "CDF_LIB=/cdf/lib" >> $GITHUB_ENV
+
     # Set up Python 3.10 to match the version of Python used in AWS Lambda
     - name: Set up Python 10
       uses: actions/setup-python@v3
@@ -24,10 +30,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-astropy pytest-cov
         python -m pip install -r requirements.txt
 
     - name: Run tests
       run: |
-        pytest -s lambda_function/tests --cov=lambda_function/src --cov-report=html --log-cli-level=INFO
+        pytest --pyargs lambda_function --cov lambda_function/src
 

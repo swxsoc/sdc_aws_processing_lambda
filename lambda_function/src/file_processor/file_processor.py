@@ -201,9 +201,9 @@ class FileProcessor:
                 raise FileNotFoundError(
                     "No files ending in .bin or .cdf found in test data directory"
                 )
-
+            log.info(f"Calibrating {file_path}")
             # Get name of new file
-            new_file_path = calibration.process_file(file_path)[0]
+            new_file_path = Path(calibration.process_file(Path(file_path))[0])
             calibrated_filename = new_file_path.name
 
             return calibrated_filename

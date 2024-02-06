@@ -1,3 +1,4 @@
+spacepy==0.4.1
 sdc_aws_utils @ git+https://github.com/HERMES-SOC/sdc_aws_utils.git
 hermes_spani @ git+https://github.com/HERMES-SOC/hermes_spani.git
 hermes_eea @ git+https://github.com/HERMES-SOC/hermes_eea.git

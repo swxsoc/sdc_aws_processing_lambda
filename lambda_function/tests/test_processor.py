@@ -3,7 +3,9 @@ import os
 import json
 from moto import mock_s3
 from pathlib import Path
+from swxsoc import log
 
+log.disable_warnings_logging()  # noqa: E402
 
 os.environ["SDC_AWS_CONFIG_FILE_PATH"] = "lambda_function/src/config.yaml"
 from src.file_processor.file_processor import (  # noqa: E402
@@ -39,7 +41,7 @@ def test_file_calibrate():
     calibrated_file_path = FileProcessor._calibrate_file(intrument, file_path)
 
     # Verify
-    assert calibrated_file_path == "hermes_eea_l1_20230211T000000_v1.0.0.cdf"
+    assert calibrated_file_path == "hermes_eea_l1_20000101T170901_v1.0.0.cdf"
 
     # Cleanup
     os.remove(Path(parent_dir, calibrated_file_path))
@@ -63,7 +65,7 @@ def test_file_calibrate_failure():
 def test_handle_event(s3):
     filename = "hermes_EEA_l0_2023042-000000_v0.bin"
     parent_dir = "lambda_function/tests/test_data"
-    calibrated_file_path = "hermes_eea_l1_20230211T000000_v1.0.0.cdf"
+    calibrated_file_path = "hermes_eea_l1_20000101T170901_v1.0.0.cdf"
     # Set the absolute path using file_path as string
     os.environ["SDC_AWS_FILE_PATH"] = f"lambda_function/tests/test_data/{filename}"
 

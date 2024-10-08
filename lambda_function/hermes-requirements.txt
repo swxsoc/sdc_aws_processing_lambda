@@ -1,7 +1,5 @@
-spacepy==0.5.0
 sdc_aws_utils @ git+https://github.com/HERMES-SOC/sdc_aws_utils.git
 hermes_spani @ git+https://github.com/HERMES-SOC/hermes_spani.git
 hermes_eea @ git+https://github.com/HERMES-SOC/hermes_eea.git
 hermes_nemisis @ git+https://github.com/HERMES-SOC/hermes_nemisis.git
 hermes_merit @ git+https://github.com/HERMES-SOC/hermes_merit.git
-psycopg2-binary==2.9.7

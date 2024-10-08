@@ -31,4 +31,6 @@ jobs:
     - name: Run tests
       run: |
         pytest --pyargs lambda_function --cov lambda_function/src
+      env:
+        SWXSOC_MISSION: hermes
 

@@ -1,6 +1,6 @@
 name: Test Lambda Function Locally and Upload Artifacts
 
-on: [pull_request, pull_request_target]
+on: [pull_request]
 
 jobs:
   test-and-upload:
@@ -19,7 +19,7 @@ jobs:
 
     - name: Run Lambda Docker Container
       run: |
-        docker run -d -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True processing_function:latest
+        docker run -d --name processing_lambda -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True -e SWXSOC_MISSION=hermes processing_function:latest
         container_id=$(docker ps -qf "ancestor=processing_function:latest")
         echo "Container ID: $container_id"
 
@@ -37,6 +37,9 @@ jobs:
         STATUS_CODE=$(echo $HTTP_STATUS | grep -oP '200')
         echo "Status Code: $STATUS_CODE"
 
+        # Show logs from the container
+        docker logs processing_lambda
+        
         # If the HTTP status code is 200, then the test is successful
         if [ "$STATUS_CODE" == "200" ]; then
           echo "Success: HTTP status is 200"
@@ -47,6 +50,8 @@ jobs:
           echo "test_success=false" >> $GITHUB_OUTPUT
           exit 1  # Exit with failure
         fi
+
+
     
     - name: Copy Processed Files from Container
       if: steps.test-lambda.outputs.test_success == 'true'

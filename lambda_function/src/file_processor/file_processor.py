@@ -124,8 +124,6 @@ class FileProcessor:
         # Parse file key to needed information
         parsed_file_key = parse_file_key(self.file_key)
 
-        FileProcessor._track_file_metatracker(science_filename_parser, parsed_file_key)
-
         # Parse the science file name
         science_file = science_filename_parser(parsed_file_key)
         this_instr = science_file["instrument"]
@@ -139,7 +137,9 @@ class FileProcessor:
             self.dry_run,
         )
 
-        product_id = self._track_file_metatracker(science_filename_parser, file_path)
+        product_id = FileProcessor._track_file_metatracker(
+            science_filename_parser, file_path
+        )
 
         # Calibrate/Process file with Instrument Package
         calibrated_filenames = self._calibrate_file(this_instr, file_path, self.dry_run)

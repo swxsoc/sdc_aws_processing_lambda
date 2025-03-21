@@ -123,7 +123,7 @@ class FileProcessor:
 
         # Parse file key to needed information
         parsed_file_key = parse_file_key(self.file_key)
-        
+
         FileProcessor._track_file_metatracker(science_filename_parser, parsed_file_key)
 
         # Parse the science file name
@@ -138,7 +138,7 @@ class FileProcessor:
             parsed_file_key,
             self.dry_run,
         )
-        
+
         product_id = self._track_file_metatracker(science_filename_parser, file_path)
 
         # Calibrate/Process file with Instrument Package
@@ -152,9 +152,9 @@ class FileProcessor:
                 calibrated_filename,
                 self.dry_run,
             )
-            self._track_file_metatracker(science_filename_parser, calibrated_filename, product_id)
-            
-
+            self._track_file_metatracker(
+                science_filename_parser, calibrated_filename, product_id
+            )
 
     @staticmethod
     def _calibrate_file(instrument, file_path, dry_run=False):
@@ -218,23 +218,23 @@ class FileProcessor:
             log.info(f"Calibrating {file_path}")
             # Get name of new file
             files_list = calibration.process_file(Path(file_path))
-            
+
             path_list = []
             for generated_file in files_list:
                 new_file_path = Path(generated_file)
                 calibrated_filename = new_file_path.name
                 path_list.append(calibrated_filename)
                 log.info(f"Calibrated file saved as {calibrated_filename}")
-                
-                
+
             return path_list
 
         except ValueError as e:
             log.error(e)
 
-
     @staticmethod
-    def _track_file_metatracker(science_filename_parser, file_path, science_product_id = None) -> int:
+    def _track_file_metatracker(
+        science_filename_parser, file_path, science_product_id=None
+    ) -> int:
         """
         Tracks processed science product in the CDF Tracker file database.
         It involves initializing the database engine, setting up database tables,
@@ -258,9 +258,7 @@ class FileProcessor:
                     f"{secret['host']}:{secret['port']}/{secret['dbname']}"
                 )
 
-                metatracker_config = FileProcessor.get_metatracker_config(
-                    swxsoc.config
-                )
+                metatracker_config = FileProcessor.get_metatracker_config(swxsoc.config)
 
                 log.info(swxsoc.config)
 
@@ -282,9 +280,9 @@ class FileProcessor:
                 if meta_tracker:
                     # Track processed file in CDF
                     science_product_id = meta_tracker.track(Path(file_path))
-                
+
                     return science_product_id
-                
+
                 return None
 
             except Exception as e:
@@ -295,7 +293,6 @@ class FileProcessor:
                     }
                 )
                 return None
-
 
     @staticmethod
     def get_metatracker_config(swxsoc_config: dict) -> dict:

@@ -7,7 +7,10 @@ the file based off which bucket the file is located in.
 import os
 import json
 from pathlib import Path
+from itertools import combinations
 import shutil
+
+import swxsoc
 
 
 from sdc_aws_utils.logging import log, configure_logger
@@ -21,6 +24,9 @@ from sdc_aws_utils.aws import (
     get_science_file,
     push_science_file,
 )
+
+import metatracker
+import boto3
 
 # Configure logger
 configure_logger()
@@ -117,6 +123,8 @@ class FileProcessor:
 
         # Parse file key to needed information
         parsed_file_key = parse_file_key(self.file_key)
+        
+        FileProcessor._track_file_metatracker(science_filename_parser, parsed_file_key)
 
         # Parse the science file name
         science_file = science_filename_parser(parsed_file_key)
@@ -130,17 +138,23 @@ class FileProcessor:
             parsed_file_key,
             self.dry_run,
         )
+        
+        product_id = self._track_file_metatracker(science_filename_parser, file_path)
 
         # Calibrate/Process file with Instrument Package
-        calibrated_filename = self._calibrate_file(this_instr, file_path, self.dry_run)
+        calibrated_filenames = self._calibrate_file(this_instr, file_path, self.dry_run)
 
         # Push file to S3 Bucket
-        push_science_file(
-            science_filename_parser,
-            destination_bucket,
-            calibrated_filename,
-            self.dry_run,
-        )
+        for calibrated_filename in calibrated_filenames:
+            push_science_file(
+                science_filename_parser,
+                destination_bucket,
+                calibrated_filename,
+                self.dry_run,
+            )
+            self._track_file_metatracker(science_filename_parser, calibrated_filename, product_id)
+            
+
 
     @staticmethod
     def _calibrate_file(instrument, file_path, dry_run=False):
@@ -180,7 +194,7 @@ class FileProcessor:
                 log.info(f"Using {test_data_files} as test data")
                 # Get any files ending in .bin or .cdf and calibrate them
                 for test_data_file in test_data_files:
-                    if test_data_file.suffix in [".bin", ".cdf"]:
+                    if test_data_file.suffix in [".bin", ".cdf", ".fits"]:
                         log.info(f"Calibrating {test_data_file}")
                         # Make /test_data directory if it doesn't exist
                         Path("/test_data").mkdir(parents=True, exist_ok=True)
@@ -203,10 +217,131 @@ class FileProcessor:
                 )
             log.info(f"Calibrating {file_path}")
             # Get name of new file
-            new_file_path = Path(calibration.process_file(Path(file_path))[0])
-            calibrated_filename = new_file_path.name
-
-            return calibrated_filename
+            files_list = calibration.process_file(Path(file_path))
+            
+            path_list = []
+            for generated_file in files_list:
+                new_file_path = Path(generated_file)
+                calibrated_filename = new_file_path.name
+                path_list.append(calibrated_filename)
+                log.info(f"Calibrated file saved as {calibrated_filename}")
+                
+                
+            return path_list
 
         except ValueError as e:
             log.error(e)
+
+
+    @staticmethod
+    def _track_file_metatracker(science_filename_parser, file_path, science_product_id = None) -> int:
+        """
+        Tracks processed science product in the CDF Tracker file database.
+        It involves initializing the database engine, setting up database tables,
+        and tracking both the original and processed files.
+
+        :param science_filename_parser: The parser function to process file names.
+        :type science_filename_parser: function
+        :param file_path: The path of the original file.
+        :type file_path: Path
+        """
+        secret_arn = os.getenv("RDS_SECRET_ARN", None)
+        if secret_arn:
+            try:
+                # Get Database Credentials
+                session = boto3.session.Session()
+                client = session.client(service_name="secretsmanager")
+                response = client.get_secret_value(SecretId=secret_arn)
+                secret = json.loads(response["SecretString"])
+                connection_string = (
+                    f"postgresql://{secret['username']}:{secret['password']}@"
+                    f"{secret['host']}:{secret['port']}/{secret['dbname']}"
+                )
+
+                metatracker_config = FileProcessor.get_metatracker_config(
+                    swxsoc.config
+                )
+
+                log.info(swxsoc.config)
+
+                log.info(metatracker_config)
+
+                metatracker.set_config(metatracker_config)
+
+                from metatracker.database import create_engine
+                from metatracker.tracker import tracker
+
+                # Initialize the database engine
+                database_engine = create_engine(connection_string)
+
+                # Set tracker to MetaTracker
+                meta_tracker = tracker.MetaTracker(
+                    database_engine, science_filename_parser
+                )
+
+                if meta_tracker:
+                    # Track processed file in CDF
+                    science_product_id = meta_tracker.track(Path(file_path))
+                
+                    return science_product_id
+                
+                return None
+
+            except Exception as e:
+                log.error(
+                    {
+                        "status": "ERROR",
+                        "message": f"Error when initializing database engine: {e}",
+                    }
+                )
+                return None
+
+
+    @staticmethod
+    def get_metatracker_config(swxsoc_config: dict) -> dict:
+        """
+        Creates the MetaTracker configuration from the swxsoc configuration.
+
+        :param config: The swxsoc configuration.
+        :type config: dict
+        :return: The MetaTracker configuration.
+        :rtype: dict
+        """
+        mission_data = swxsoc_config["mission"]
+        instruments = mission_data["inst_names"]
+
+        instruments_list = [
+            {
+                "instrument_id": idx + 1,
+                "description": (
+                    f"{mission_data['inst_fullnames'][idx]} "
+                    f"({mission_data['inst_targetnames'][idx]})"
+                ),
+                "full_name": mission_data["inst_fullnames"][idx],
+                "short_name": mission_data["inst_shortnames"][idx],
+            }
+            for idx in range(len(instruments))
+        ]
+
+        # Generate all possible configurations of the instruments
+        instrument_configurations = []
+        config_id = 1
+        for r in range(1, len(instruments) + 1):
+            for combo in combinations(range(1, len(instruments) + 1), r):
+                config = {"instrument_configuration_id": config_id}
+                config.update(
+                    {
+                        f"instrument_{i+1}_id": combo[i] if i < len(combo) else None
+                        for i in range(len(instruments))
+                    }
+                )
+                instrument_configurations.append(config)
+                config_id += 1
+
+        metatracker_config = {
+            "mission_name": mission_data["mission_name"],
+            "instruments": instruments_list,
+            "instrument_configurations": instrument_configurations,
+        }
+
+        return metatracker_config

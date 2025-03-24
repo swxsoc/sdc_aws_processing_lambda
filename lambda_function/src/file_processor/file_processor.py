@@ -153,7 +153,7 @@ class FileProcessor:
                 self.dry_run,
             )
             self._track_file_metatracker(
-                science_filename_parser, calibrated_filename, product_id
+                science_filename_parser, Path(file_path), product_id
             )
 
     @staticmethod

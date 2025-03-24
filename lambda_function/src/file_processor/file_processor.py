@@ -138,7 +138,7 @@ class FileProcessor:
         )
 
         product_id = FileProcessor._track_file_metatracker(
-            science_filename_parser, file_path
+            science_filename_parser, Path(file_path)
         )
 
         # Calibrate/Process file with Instrument Package

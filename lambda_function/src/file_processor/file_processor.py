@@ -260,9 +260,9 @@ class FileProcessor:
 
                 metatracker_config = FileProcessor.get_metatracker_config(swxsoc.config)
 
-                log.info(swxsoc.config)
+                log.debug(swxsoc.config)
 
-                log.info(metatracker_config)
+                log.debug(metatracker_config)
 
                 metatracker.set_config(metatracker_config)
 

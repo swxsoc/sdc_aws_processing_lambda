@@ -141,7 +141,10 @@ class FileProcessor:
         )
 
         product_id = FileProcessor._track_file_metatracker(
-            science_filename_parser, Path(file_path), parsed_file_key, self.instrument_bucket_name
+            science_filename_parser,
+            Path(file_path),
+            parsed_file_key,
+            self.instrument_bucket_name,
         )
 
         # Calibrate/Process file with Instrument Package
@@ -165,7 +168,11 @@ class FileProcessor:
                 self.dry_run,
             )
             self._track_file_metatracker(
-                science_filename_parser, Path(file_path), calibrated_filename, destination_bucket, product_id
+                science_filename_parser,
+                Path(file_path),
+                calibrated_filename,
+                destination_bucket,
+                product_id,
             )
 
     @staticmethod
@@ -326,7 +333,9 @@ class FileProcessor:
                 )
 
                 if meta_tracker:
-                    science_product_id = meta_tracker.track(file_path, s3_key, s3_bucket)
+                    science_product_id = meta_tracker.track(
+                        file_path, s3_key, s3_bucket
+                    )
 
                     return science_product_id
 

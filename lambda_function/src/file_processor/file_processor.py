@@ -389,12 +389,4 @@ class FileProcessor:
             "instrument_configurations": instrument_configurations,
         }
 
-        log.info(
-            {
-                "status": "INFO",
-                "message": "MetaTracker configuration created",
-                "metatracker_config": metatracker_config,
-            }
-        )
-
         return metatracker_config

@@ -311,8 +311,8 @@ class FileProcessor:
                 metatracker.set_config(metatracker_config)
 
                 from metatracker.database import create_engine
+                from metatracker.database.tables import create_tables
                 from metatracker.tracker import tracker
-                from metatracker.tables import create_tables
 
                 # Initialize the database engine
                 database_engine = create_engine(connection_string)

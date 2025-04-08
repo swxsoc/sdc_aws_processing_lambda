@@ -312,9 +312,13 @@ class FileProcessor:
 
                 from metatracker.database import create_engine
                 from metatracker.tracker import tracker
+                from metatracker.tables import create_tables
 
                 # Initialize the database engine
                 database_engine = create_engine(connection_string)
+
+                # Create tables if they do not exist
+                create_tables(database_engine)
 
                 # Set tracker to MetaTracker
                 meta_tracker = tracker.MetaTracker(

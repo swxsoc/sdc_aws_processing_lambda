@@ -63,7 +63,7 @@ def handle_event(event, context) -> dict:
             return {"statusCode": 200, "body": "File Processed Successfully"}
 
     except Exception as e:
-        log.error({"status": "ERROR", "message": e})
+        log.error({"status": "ERROR", "message": e, "traceback": traceback.format_exc()})
 
         return {
             "statusCode": 500,
@@ -145,6 +145,15 @@ class FileProcessor:
         # Calibrate/Process file with Instrument Package
         calibrated_filenames = self._calibrate_file(this_instr, file_path, self.dry_run)
 
+        if not calibrated_filenames:
+            log.warning(
+                {
+                    "status": "WARNING",
+                    "message": f"No calibrated files found for file: {file_path}",
+                }
+            )
+            return
+        
         # Push file to S3 Bucket
         for calibrated_filename in calibrated_filenames:
             push_science_file(
@@ -230,7 +239,14 @@ class FileProcessor:
             return path_list
 
         except ValueError as e:
-            log.error(e)
+            log.error({"status": "ERROR", "message": str(e), "traceback": traceback.format_exc()})
+            
+        except FileNotFoundError as e:
+            log.error({"status": "ERROR", "message": str(e), "traceback": traceback.format_exc()})
+        
+        except Exception as e:
+            log.error({"status": "ERROR", "message": str(e), "traceback": traceback.format_exc()})
+            raise e
 
     @staticmethod
     def _track_file_metatracker(

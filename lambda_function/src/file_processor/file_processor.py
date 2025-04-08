@@ -143,7 +143,7 @@ class FileProcessor:
         product_id = FileProcessor._track_file_metatracker(
             science_filename_parser,
             Path(file_path),
-            parsed_file_key,
+            self.file_key,
             self.instrument_bucket_name,
         )
 

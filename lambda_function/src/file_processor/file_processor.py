@@ -63,7 +63,9 @@ def handle_event(event, context) -> dict:
             return {"statusCode": 200, "body": "File Processed Successfully"}
 
     except Exception as e:
-        log.error({"status": "ERROR", "message": e, "traceback": traceback.format_exc()})
+        log.error(
+            {"status": "ERROR", "message": e, "traceback": traceback.format_exc()}
+        )
 
         return {
             "statusCode": 500,
@@ -153,7 +155,7 @@ class FileProcessor:
                 }
             )
             return
-        
+
         # Push file to S3 Bucket
         for calibrated_filename in calibrated_filenames:
             push_science_file(
@@ -239,13 +241,31 @@ class FileProcessor:
             return path_list
 
         except ValueError as e:
-            log.error({"status": "ERROR", "message": str(e), "traceback": traceback.format_exc()})
-            
+            log.error(
+                {
+                    "status": "ERROR",
+                    "message": str(e),
+                    "traceback": traceback.format_exc(),
+                }
+            )
+
         except FileNotFoundError as e:
-            log.error({"status": "ERROR", "message": str(e), "traceback": traceback.format_exc()})
-        
+            log.error(
+                {
+                    "status": "ERROR",
+                    "message": str(e),
+                    "traceback": traceback.format_exc(),
+                }
+            )
+
         except Exception as e:
-            log.error({"status": "ERROR", "message": str(e), "traceback": traceback.format_exc()})
+            log.error(
+                {
+                    "status": "ERROR",
+                    "message": str(e),
+                    "traceback": traceback.format_exc(),
+                }
+            )
             raise e
 
     @staticmethod
@@ -364,5 +384,13 @@ class FileProcessor:
             "instruments": instruments_list,
             "instrument_configurations": instrument_configurations,
         }
+
+        log.info(
+            {
+                "status": "INFO",
+                "message": "MetaTracker configuration created",
+                "metatracker_config": metatracker_config,
+            }
+        )
 
         return metatracker_config

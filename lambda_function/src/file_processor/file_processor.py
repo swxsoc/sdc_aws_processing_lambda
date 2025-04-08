@@ -279,7 +279,7 @@ class FileProcessor:
 
                 if meta_tracker:
                     # Track processed file in CDF
-                    science_product_id = meta_tracker.track(Path(file_path))
+                    science_product_id = meta_tracker.track(file_path)
 
                     return science_product_id
 

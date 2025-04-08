@@ -248,6 +248,13 @@ class FileProcessor:
         secret_arn = os.getenv("RDS_SECRET_ARN", None)
         if secret_arn:
             try:
+                # Validate file path
+                if not file_path or not isinstance(file_path, Path):
+                    raise ValueError("Invalid file path provided.")
+                # Check if file exists
+                if not file_path.exists():
+                    raise FileNotFoundError(f"File not found: {file_path}")
+
                 # Get Database Credentials
                 session = boto3.session.Session()
                 client = session.client(service_name="secretsmanager")
@@ -289,7 +296,7 @@ class FileProcessor:
                 log.error(
                     {
                         "status": "ERROR",
-                        "message": f"Error when initializing database engine: {e}",
+                        "message": e,
                     }
                 )
                 return None

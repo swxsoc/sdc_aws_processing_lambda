@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 from itertools import combinations
 import shutil
+import traceback
 
 import swxsoc
 
@@ -285,7 +286,6 @@ class FileProcessor:
                 )
 
                 if meta_tracker:
-                    # Track processed file in CDF
                     science_product_id = meta_tracker.track(file_path)
 
                     return science_product_id
@@ -296,7 +296,8 @@ class FileProcessor:
                 log.error(
                     {
                         "status": "ERROR",
-                        "message": e,
+                        "message": str(e),
+                        "traceback": traceback.format_exc(),
                     }
                 )
                 return None

@@ -519,8 +519,7 @@ def fetch_data():
         FROM {mission_name}_status s
         JOIN {mission_name}_science_file sf ON s.science_file_id = sf.science_file_id
         LEFT JOIN {mission_name}_science_file origin_sf ON s.origin_file_id = origin_sf.science_file_id
-        WHERE $__timeFilter(s.last_processing_timestamp)
-          AND s.processing_status = 'failed'
+        WHERE s.processing_status = 'failed'
         ORDER BY s.last_processing_timestamp DESC;
         """
 

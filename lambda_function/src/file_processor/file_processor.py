@@ -210,8 +210,8 @@ class FileProcessor:
                 # Track the calibrated file in the CDF Tracker
                 self._track_file_metatracker(
                     science_filename_parser,
-                    Path(calibrated_filename),
-                    "tmp" / calibrated_filename,
+                    Path("/tmp") / calibrated_filename,
+                    calibrated_filename,
                     destination_bucket,
                     science_product_id,
                     status=status,

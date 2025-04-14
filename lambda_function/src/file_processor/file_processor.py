@@ -320,7 +320,7 @@ class FileProcessor:
 
     @staticmethod
     def _track_file_metatracker(
-        science_filename_parser, file_path, s3_key, s3_bucket, science_product_id=None
+        science_filename_parser, file_path, s3_key, s3_bucket, science_product_id=None, status=None
     ) -> int:
         """
         Tracks processed science product in the CDF Tracker file database.
@@ -377,7 +377,7 @@ class FileProcessor:
 
                 if meta_tracker:
                     science_file_id, science_product_id = meta_tracker.track(
-                        file_path, s3_key, s3_bucket
+                        file_path, s3_key, s3_bucket, status=status
                     )
 
                     return science_file_id, science_product_id

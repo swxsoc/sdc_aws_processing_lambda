@@ -483,30 +483,32 @@ class FileProcessor:
         return status
 
 
-# Function to execute the SQL query and fetch data
 def fetch_data():
-    # Get mission_name from environment variable or default to "swxsoc"
     mission_name = os.getenv("SWXSOC_MISSION", "swxsoc")
-    secret_arn = os.getenv("RDS_SECRET_ARN", None)
+    secret_arn = os.getenv("RDS_SECRET_ARN")
+    lambda_function_name = os.getenv("AWS_LAMBDA_FUNCTION_NAME")
 
     if not secret_arn:
-        print("No RDS Secret ARN found in the environment variables.")
+        swxsoc.log.error("No RDS Secret ARN found in environment variables.")
+        return
+
+    if not lambda_function_name:
+        swxsoc.log.error("No Lambda function name found in environment variables.")
         return
 
     try:
-        # Get Database Credentials from Secrets Manager
+        # Get RDS credentials
         session = boto3.session.Session()
-        client = session.client(service_name="secretsmanager")
-        response = client.get_secret_value(SecretId=secret_arn)
-        secret = json.loads(response["SecretString"])
-
-        # Build the connection string
-        connection_string = (
-            f"postgresql://{secret['username']}:{secret['password']}@"
-            f"{secret['host']}:{secret['port']}/{secret['dbname']}"
+        sm_client = session.client("secretsmanager")
+        rds_secret = json.loads(
+            sm_client.get_secret_value(SecretId=secret_arn)["SecretString"]
         )
 
-        # SQL query with dynamic padre schema
+        connection_string = (
+            f"postgresql://{rds_secret['username']}:{rds_secret['password']}@"
+            f"{rds_secret['host']}:{rds_secret['port']}/{rds_secret['dbname']}"
+        )
+
         query = f"""
         SELECT
             sf.s3_key,
@@ -518,27 +520,43 @@ def fetch_data():
         ORDER BY s.last_processing_timestamp DESC;
         """
 
-        # Connect to the database
         conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
-
-        # Execute the query
         cursor.execute(query)
-
-        # Fetch all results
         results = cursor.fetchall()
 
-        # Print or process the results
-        for row in results:
-            # Extract the S3 bucket and key from the row
-            s3_key = row[0]
-            s3_bucket = row[1]
+        lambda_client = session.client("lambda")
 
-            swxsoc.log.info(f"Reprocessing file: {s3_key} from bucket: {s3_bucket}")
+        for s3_key, s3_bucket in results:
+            swxsoc.log.info(
+                f"Invoking Lambda for file: {s3_key} from bucket: {s3_bucket}"
+            )
 
-        # Close the cursor and connection
+            payload = {
+                "Records": [
+                    {"s3": {"bucket": {"name": s3_bucket}, "object": {"key": s3_key}}}
+                ]
+            }
+
+            # Wrap it as if it were from an SNS message
+            sns_event = {
+                "Records": [
+                    {
+                        "Sns": {
+                            "Message": json.dumps({"Records": [payload["Records"][0]]})
+                        }
+                    }
+                ]
+            }
+
+            lambda_client.invoke(
+                FunctionName=lambda_function_name,
+                InvocationType="Event",  # Async invocation
+                Payload=json.dumps(sns_event).encode("utf-8"),
+            )
+
         cursor.close()
         conn.close()
 
     except Exception as e:
-        swxsoc.log.error(f"Error fetching data: {str(e)}")
+        swxsoc.log.error(f"Error in fetch_data(): {e}", exc_info=True)

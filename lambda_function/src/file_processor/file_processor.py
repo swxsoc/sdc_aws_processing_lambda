@@ -61,7 +61,6 @@ def handle_event(event, context) -> dict:
                 }
             )
             fetch_data()
-            
 
         # Parse message from SNS Notification
         for s3_event in records:
@@ -503,7 +502,7 @@ def fetch_data():
     if not secret_arn:
         print("No RDS Secret ARN found in the environment variables.")
         return
-    
+
     try:
         # Get Database Credentials from Secrets Manager
         session = boto3.session.Session()

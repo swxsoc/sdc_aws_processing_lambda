@@ -509,13 +509,9 @@ def fetch_data():
         # SQL query with dynamic padre schema
         query = f"""
         SELECT
-            sf.filename AS current_file_name,
-            origin_sf.filename AS origin_file_name,
-            sf.file_level,
-            s.processing_status,
-            s.processing_status_message,
-            s.last_processing_timestamp,
-            s.processing_time_length
+            sf.s3_key,
+            sf.s3_bucket,
+
         FROM {mission_name}_status s
         JOIN {mission_name}_science_file sf ON s.science_file_id = sf.science_file_id
         LEFT JOIN {mission_name}_science_file origin_sf ON s.origin_file_id = origin_sf.science_file_id
@@ -534,8 +530,12 @@ def fetch_data():
         results = cursor.fetchall()
 
         # Print or process the results
-        for row in results:
-            swxsoc.log.info(row)
+        for row in results:            
+            # Extract the S3 bucket and key from the row
+            s3_key = row[0]
+            s3_bucket = row[1]
+            
+            swxsoc.log.info(f"Reprocessing file: {s3_key} from bucket: {s3_bucket}")
 
         # Close the cursor and connection
         cursor.close()

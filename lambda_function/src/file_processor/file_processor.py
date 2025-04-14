@@ -510,8 +510,7 @@ def fetch_data():
         query = f"""
         SELECT
             sf.s3_key,
-            sf.s3_bucket,
-
+            sf.s3_bucket
         FROM {mission_name}_status s
         JOIN {mission_name}_science_file sf ON s.science_file_id = sf.science_file_id
         LEFT JOIN {mission_name}_science_file origin_sf ON s.origin_file_id = origin_sf.science_file_id

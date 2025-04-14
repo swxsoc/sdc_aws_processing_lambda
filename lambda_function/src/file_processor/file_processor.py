@@ -182,7 +182,6 @@ class FileProcessor:
                 status=Status.SUCCESS,
                 message=f"File Processed Successfully",
                 total_time=total_time,
-                origin_file_id=None,
             )
 
             science_file_id, science_product_id = FileProcessor._track_file_metatracker(

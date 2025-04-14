@@ -148,11 +148,6 @@ class FileProcessor:
             self.dry_run,
         )
 
-        status = self.build_status(
-            success=True,
-            message="File Processed Successfully",
-        )
-
         # Calibrate/Process file with Instrument Package
         start_time = time.time()
         calibrated_filenames = self._calibrate_file(this_instr, file_path, self.dry_run)
@@ -160,7 +155,7 @@ class FileProcessor:
         total_time = end_time - start_time
 
         if not calibrated_filenames:
-
+            # If no calibrated files are found, set status to failed
             status = self.build_status(
                 status=Status.FAILED,
                 message=f"Could Not Process {file_path} Further",
@@ -182,6 +177,7 @@ class FileProcessor:
             )
             return
         else:
+            # If calibrated files are found, set status to success
             status = self.build_status(
                 status=Status.SUCCESS,
                 message=f"File Processed Successfully",
@@ -211,6 +207,8 @@ class FileProcessor:
                     calibrated_filename,
                     self.dry_run,
                 )
+                
+                # Track the calibrated file in the CDF Tracker
                 self._track_file_metatracker(
                     science_filename_parser,
                     Path(calibrated_filename),

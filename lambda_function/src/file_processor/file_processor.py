@@ -530,11 +530,11 @@ def fetch_data():
         results = cursor.fetchall()
 
         # Print or process the results
-        for row in results:            
+        for row in results:
             # Extract the S3 bucket and key from the row
             s3_key = row[0]
             s3_bucket = row[1]
-            
+
             swxsoc.log.info(f"Reprocessing file: {s3_key} from bucket: {s3_bucket}")
 
         # Close the cursor and connection

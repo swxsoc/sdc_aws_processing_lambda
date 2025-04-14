@@ -162,7 +162,7 @@ class FileProcessor:
         if not calibrated_filenames:
 
             status = self.build_status(
-                success=Status.FAILED,
+                status=Status.FAILED,
                 message=f"Could Not Process {file_path} Further",
             )
 
@@ -183,7 +183,7 @@ class FileProcessor:
             return
         else:
             status = self.build_status(
-                success=Status.SUCCESS,
+                status=Status.SUCCESS,
                 message=f"File Processed Successfully",
                 total_time=total_time,
                 origin_file_id=None,
@@ -200,7 +200,7 @@ class FileProcessor:
             # Push file to S3 Bucket
             for calibrated_filename in calibrated_filenames:
                 status = self.build_status(
-                    success=Status.PENDING,
+                    status=Status.PENDING,
                     message=f"File {calibrated_filename} Needs Further Processing",
                     origin_file_id=science_file_id,
                 )

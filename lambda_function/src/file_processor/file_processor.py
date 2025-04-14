@@ -1,9 +1,11 @@
 """
-This Module contains the FileProcessor class that will distinguish
-the appropriate HERMES intrument library to use when processing
-the file based off which bucket the file is located in.
+This module contains the FileProcessor class, which determines the appropriate
+HERMES instrument library to use for processing a file, based on the S3 bucket
+in which the file is located.
 """
 
+from enum import Enum
+import time
 import os
 import json
 from pathlib import Path
@@ -73,6 +75,12 @@ def handle_event(event, context) -> dict:
         }
 
 
+class Status(Enum):
+    SUCCESS = "success"
+    PENDING = "pending"
+    FAILED = "failed"
+
+
 class FileProcessor:
     """
     The FileProcessor class will then determine which instrument
@@ -140,17 +148,32 @@ class FileProcessor:
             self.dry_run,
         )
 
-        product_id = FileProcessor._track_file_metatracker(
-            science_filename_parser,
-            Path(file_path),
-            self.file_key,
-            self.instrument_bucket_name,
+        status = self.build_status(
+            success=True,
+            message="File Processed Successfully",
         )
 
         # Calibrate/Process file with Instrument Package
+        start_time = time.time()
         calibrated_filenames = self._calibrate_file(this_instr, file_path, self.dry_run)
+        end_time = time.time()
+        total_time = end_time - start_time
 
         if not calibrated_filenames:
+
+            status = self.build_status(
+                success=Status.FAILED,
+                message=f"Could Not Process {file_path} Further",
+            )
+
+            FileProcessor._track_file_metatracker(
+                science_filename_parser,
+                Path(file_path),
+                self.file_key,
+                self.instrument_bucket_name,
+                status=status,
+            )
+
             log.warning(
                 {
                     "status": "WARNING",
@@ -158,22 +181,44 @@ class FileProcessor:
                 }
             )
             return
+        else:
+            status = self.build_status(
+                success=Status.SUCCESS,
+                message=f"File Processed Successfully",
+                total_time=total_time,
+                origin_file_id=None,
+            )
 
-        # Push file to S3 Bucket
-        for calibrated_filename in calibrated_filenames:
-            push_science_file(
+            science_file_id, science_product_id = FileProcessor._track_file_metatracker(
                 science_filename_parser,
-                destination_bucket,
-                calibrated_filename,
-                self.dry_run,
+                Path(file_path),
+                self.file_key,
+                self.instrument_bucket_name,
+                status=status,
             )
-            self._track_file_metatracker(
-                science_filename_parser,
-                Path(calibrated_filename),
-                calibrated_filename,
-                destination_bucket,
-                product_id,
-            )
+
+            # Push file to S3 Bucket
+            for calibrated_filename in calibrated_filenames:
+                status = self.build_status(
+                    success=Status.PENDING,
+                    message=f"File {calibrated_filename} Needs Further Processing",
+                    origin_file_id=science_file_id,
+                )
+
+                push_science_file(
+                    science_filename_parser,
+                    destination_bucket,
+                    calibrated_filename,
+                    self.dry_run,
+                )
+                self._track_file_metatracker(
+                    science_filename_parser,
+                    Path(calibrated_filename),
+                    calibrated_filename,
+                    destination_bucket,
+                    science_product_id,
+                    status=status,
+                )
 
     @staticmethod
     def _calibrate_file(instrument, file_path, dry_run=False):
@@ -333,11 +378,11 @@ class FileProcessor:
                 )
 
                 if meta_tracker:
-                    science_product_id = meta_tracker.track(
+                    science_file_id, science_product_id = meta_tracker.track(
                         file_path, s3_key, s3_bucket
                     )
 
-                    return science_product_id
+                    return science_file_id, science_product_id
 
                 return None
 
@@ -399,3 +444,38 @@ class FileProcessor:
         }
 
         return metatracker_config
+
+    @staticmethod
+    def build_status(
+        status: Status,
+        message: str,
+        total_time: float = None,
+        origin_file_id: int = None,
+    ) -> dict:
+        """
+        Builds a status dictionary for MetaTracker tracking.
+
+        :param start_time: Timestamp when processing began (from `time.time()`).
+        :type start_time: float
+        :param success: Whether processing succeeded.
+        :type success: bool
+        :param message: Message to include with the status.
+        :type message: str
+        :param origin_file_id: Optional ID of the original file if this is a processed result.
+        :type origin_file_id: int
+        :return: Dictionary representing processing status.
+        :rtype: dict
+        """
+
+        status = {
+            "processing_status": status.value,
+            "processing_status_message": message,
+        }
+
+        if origin_file_id:
+            status["origin_file_id"] = origin_file_id
+
+        if total_time:
+            status["processing_time_length"] = total_time
+
+        return status

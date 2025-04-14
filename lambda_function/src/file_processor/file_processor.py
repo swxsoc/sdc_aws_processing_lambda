@@ -38,33 +38,29 @@ configure_logger()
 
 def handle_event(event, context) -> dict:
     """
-    Handles the event passed to the lambda function to initialize the FileProcessor
+    Handles the event passed to the lambda function to initialize the FileProcessor.
 
-    :param event: Event data passed from the lambda trigger
+    :param event: Event data passed from the Lambda trigger.
     :type event: dict
-    :param context: Lambda context
-    :type context: dict
-    :return: Returns a 200 (Successful) / 500 (Error) HTTP response
+    :param context: Lambda context.
+    :type context: object
+    :return: Returns a 200 (Successful) / 500 (Error) HTTP response.
     :rtype: dict
     """
     try:
         environment = os.getenv("LAMBDA_ENVIRONMENT", "DEVELOPMENT")
 
-        # Check if SNS or S3 event
-        records = json.loads(event["Records"][0]["Sns"]["Message"])["Records"]
-        if not records:
-            # Function to connect to the PostgreSQL database
-            log.info(
-                {
-                    "status": "INFO",
-                    "message": "No records found in SNS event. Reprocessing data from database.",
-                }
-            )
-            fetch_data()
+        # Extract Records from SNS or S3 notification
+        sns_message = event.get("Records", [{}])[0].get("Sns", {}).get("Message", "{}")
+        records = json.loads(sns_message).get("Records", [])
 
-        # Parse message from SNS Notification
+        if not records:
+            log.info("No records found in SNS event. Reprocessing data from database.")
+            fetch_data()
+            return {"statusCode": 200, "body": "Reprocessed data from database."}
+
+        # Process each S3 event record
         for s3_event in records:
-            # Extract needed information from event
             s3_bucket = s3_event["s3"]["bucket"]["name"]
             file_key = s3_event["s3"]["object"]["key"]
 
@@ -72,17 +68,11 @@ def handle_event(event, context) -> dict:
                 s3_bucket=s3_bucket, file_key=file_key, environment=environment
             )
 
-            return {"statusCode": 200, "body": "File Processed Successfully"}
+        return {"statusCode": 200, "body": "Files processed successfully."}
 
     except Exception as e:
-        log.error(
-            {"status": "ERROR", "message": e, "traceback": traceback.format_exc()}
-        )
-
-        return {
-            "statusCode": 500,
-            "body": json.dumps(f"Error Processing File: {e}"),
-        }
+        log.error("Error Processing Event", exc_info=True)
+        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
 
 
 class Status(Enum):

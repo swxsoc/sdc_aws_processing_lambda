@@ -211,7 +211,7 @@ class FileProcessor:
                 self._track_file_metatracker(
                     science_filename_parser,
                     Path(calibrated_filename),
-                    calibrated_filename,
+                    "tmp" / calibrated_filename,
                     destination_bucket,
                     science_product_id,
                     status=status,

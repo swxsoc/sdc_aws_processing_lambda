@@ -30,6 +30,7 @@ from sdc_aws_utils.aws import (
 
 import metatracker
 import boto3
+import psycopg2
 
 # Configure logger
 configure_logger()
@@ -51,6 +52,16 @@ def handle_event(event, context) -> dict:
 
         # Check if SNS or S3 event
         records = json.loads(event["Records"][0]["Sns"]["Message"])["Records"]
+        if not records:
+            # Function to connect to the PostgreSQL database
+            log.info(
+                {
+                    "status": "INFO",
+                    "message": "No records found in SNS event. Reprocessing data from database.",
+                }
+            )
+            fetch_data()
+            
 
         # Parse message from SNS Notification
         for s3_event in records:
@@ -481,3 +492,66 @@ class FileProcessor:
             status["processing_time_length"] = total_time
 
         return status
+
+
+# Function to execute the SQL query and fetch data
+def fetch_data():
+    # Get mission_name from environment variable or default to "swxsoc"
+    mission_name = os.getenv("SWXSOC_MISSION", "swxsoc")
+    secret_arn = os.getenv("RDS_SECRET_ARN", None)
+
+    if not secret_arn:
+        print("No RDS Secret ARN found in the environment variables.")
+        return
+    
+    try:
+        # Get Database Credentials from Secrets Manager
+        session = boto3.session.Session()
+        client = session.client(service_name="secretsmanager")
+        response = client.get_secret_value(SecretId=secret_arn)
+        secret = json.loads(response["SecretString"])
+
+        # Build the connection string
+        connection_string = (
+            f"postgresql://{secret['username']}:{secret['password']}@"
+            f"{secret['host']}:{secret['port']}/{secret['dbname']}"
+        )
+
+        # SQL query with dynamic padre schema
+        query = f"""
+        SELECT
+            sf.filename AS current_file_name,
+            origin_sf.filename AS origin_file_name,
+            sf.file_level,
+            s.processing_status,
+            s.processing_status_message,
+            s.last_processing_timestamp,
+            s.processing_time_length
+        FROM {mission_name}_status s
+        JOIN {mission_name}_science_file sf ON s.science_file_id = sf.science_file_id
+        LEFT JOIN {mission_name}_science_file origin_sf ON s.origin_file_id = origin_sf.science_file_id
+        WHERE $__timeFilter(s.last_processing_timestamp)
+          AND s.processing_status = 'failed'
+        ORDER BY s.last_processing_timestamp DESC;
+        """
+
+        # Connect to the database
+        conn = psycopg2.connect(connection_string)
+        cursor = conn.cursor()
+
+        # Execute the query
+        cursor.execute(query)
+
+        # Fetch all results
+        results = cursor.fetchall()
+
+        # Print or process the results
+        for row in results:
+            swxsoc.log.info(row)
+
+        # Close the cursor and connection
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        swxsoc.log.error(f"Error fetching data: {str(e)}")

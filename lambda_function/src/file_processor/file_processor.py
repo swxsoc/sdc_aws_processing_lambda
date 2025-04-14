@@ -156,18 +156,18 @@ class FileProcessor:
 
         if not calibrated_filenames:
             # If no calibrated files are found, set status to failed
-            status = self.build_status(
-                status=Status.FAILED,
-                message=f"Could Not Process {file_path} Further",
-            )
+            # status = self.build_status(
+            #     status=Status.FAILED,
+            #     message=f"Could Not Process {file_path} Further",
+            # )
 
-            FileProcessor._track_file_metatracker(
-                science_filename_parser,
-                Path(file_path),
-                self.file_key,
-                self.instrument_bucket_name,
-                status=status,
-            )
+            # FileProcessor._track_file_metatracker(
+            #     science_filename_parser,
+            #     Path(file_path),
+            #     self.file_key,
+            #     self.instrument_bucket_name,
+            #     status=status,
+            # )
 
             log.warning(
                 {

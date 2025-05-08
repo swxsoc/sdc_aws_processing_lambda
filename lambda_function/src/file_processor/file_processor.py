@@ -191,6 +191,15 @@ class FileProcessor:
                 self.instrument_bucket_name,
                 status=status,
             )
+            
+            log.info(
+                {
+                    "status": "INFO",
+                    "message": f"File {self.file_key} processed successfully.",
+                    "science_file_id": science_file_id,
+                    "science_product_id": science_product_id,
+                }
+            )
 
             # Push file to S3 Bucket
             for calibrated_filename in calibrated_filenames:

@@ -191,7 +191,7 @@ class FileProcessor:
                 self.instrument_bucket_name,
                 status=status,
             )
-            
+
             log.info(
                 {
                     "status": "INFO",

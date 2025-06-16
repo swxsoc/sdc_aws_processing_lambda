@@ -485,7 +485,7 @@ class FileProcessor:
 
         if origin_file_ids is not None:
             status["origin_file_ids"] = origin_file_ids
-        
+
         if total_time:
             status["processing_time_length"] = total_time
 

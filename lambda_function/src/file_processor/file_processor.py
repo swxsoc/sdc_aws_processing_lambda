@@ -40,7 +40,7 @@ def handle_event(event, context) -> dict:
     """
     Handles the event passed to the lambda function to initialize the FileProcessor.
 
-    :param event: Event data passed from the Lambda trigger.
+    :param event: Event data passed from the Lambda.
     :type event: dict
     :param context: Lambda context.
     :type context: object

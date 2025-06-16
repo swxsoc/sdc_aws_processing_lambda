@@ -206,7 +206,7 @@ class FileProcessor:
                 status = self.build_status(
                     status=Status.PENDING,
                     message=f"File {calibrated_filename} Needs Further Processing",
-                    origin_file_id=science_file_id,
+                    origin_file_ids=[science_file_id],
                 )
 
                 push_science_file(
@@ -461,7 +461,7 @@ class FileProcessor:
         status: Status,
         message: str,
         total_time: float = None,
-        origin_file_id: int = None,
+        origin_file_ids: list = None,
     ) -> dict:
         """
         Builds a status dictionary for MetaTracker tracking.
@@ -472,8 +472,8 @@ class FileProcessor:
         :type success: bool
         :param message: Message to include with the status.
         :type message: str
-        :param origin_file_id: Optional ID of the original file if this is a processed result.
-        :type origin_file_id: int
+        :param origin_file_ids: Optional IDs of the original file if this is a processed result.
+        :type origin_file_ids: list
         :return: Dictionary representing processing status.
         :rtype: dict
         """
@@ -483,9 +483,9 @@ class FileProcessor:
             "processing_status_message": message,
         }
 
-        if origin_file_id:
-            status["origin_file_id"] = origin_file_id
-
+        if origin_file_ids is not None:
+            status["origin_file_ids"] = origin_file_ids
+        
         if total_time:
             status["processing_time_length"] = total_time
 
@@ -521,12 +521,13 @@ def fetch_data():
         query = f"""
         SELECT
             sf.s3_key,
-            sf.s3_bucket
+            sf.s3_bucket,
+            array_agg(soa.origin_file_id) as origin_file_ids
         FROM {mission_name}_status s
         JOIN {mission_name}_science_file sf ON s.science_file_id = sf.science_file_id
-        LEFT JOIN {mission_name}_science_file origin_sf ON s.origin_file_id = origin_sf.science_file_id
+        LEFT JOIN {mission_name}_status_origin_association soa ON s.status_id = soa.status_id
         WHERE s.processing_status = 'failed'
-        ORDER BY s.last_processing_timestamp DESC;
+        GROUP BY sf.s3_key, sf.s3_bucket;
         """
 
         conn = psycopg2.connect(connection_string)

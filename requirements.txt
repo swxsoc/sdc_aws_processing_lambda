@@ -1,4 +1,4 @@
-sdc_aws_utils @ git+https://github.com/HERMES-SOC/sdc_aws_utils.git
+sdc_aws_utils @ git+https://github.com/swxsoc/sdc_aws_utils.git
 hermes_eea @ git+https://github.com/HERMES-SOC/hermes_eea.git 
 moto==4.2.14
 pytest==8.0.0

@@ -499,6 +499,7 @@ class FileProcessor:
 
         return status
 
+
 @retry(
     retry=retry_if_exception_type(psycopg2.OperationalError),
     wait=wait_random(min=2, max=10),

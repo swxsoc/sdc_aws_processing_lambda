@@ -2,3 +2,4 @@ sdc_aws_utils @ git+https://github.com/swxsoc/sdc_aws_utils.git
 metatracker @ git+https://github.com/swxsoc/MetaTracker.git
 padre_meddea @ git+https://github.com/PADRESat/padre_meddea.git
 padre_sharp @ git+https://github.com/PADRESat/padre_sharp.git
+tenacity==9.1.2

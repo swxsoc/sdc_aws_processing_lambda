@@ -31,6 +31,8 @@ from sdc_aws_utils.aws import (
 import metatracker
 import boto3
 import psycopg2
+from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception_type
+
 
 # Configure logger
 configure_logger()
@@ -327,6 +329,12 @@ class FileProcessor:
             raise e
 
     @staticmethod
+    @retry(
+        retry=retry_if_exception_type(psycopg2.OperationalError),
+        wait=wait_random(min=2, max=10),
+        stop=stop_after_attempt(10),
+        reraise=True,
+    )
     def _track_file_metatracker(
         science_filename_parser,
         file_path,
@@ -491,7 +499,12 @@ class FileProcessor:
 
         return status
 
-
+@retry(
+    retry=retry_if_exception_type(psycopg2.OperationalError),
+    wait=wait_random(min=2, max=10),
+    stop=stop_after_attempt(10),
+    reraise=True,
+)
 def fetch_data():
     mission_name = os.getenv("SWXSOC_MISSION", "swxsoc")
     secret_arn = os.getenv("RDS_SECRET_ARN")

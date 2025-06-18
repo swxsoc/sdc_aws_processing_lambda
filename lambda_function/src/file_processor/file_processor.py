@@ -26,6 +26,7 @@ from sdc_aws_utils.aws import (
     parse_file_key,
     get_science_file,
     push_science_file,
+    create_s3_file_key,
 )
 
 import metatracker
@@ -205,6 +206,9 @@ class FileProcessor:
 
             # Push file to S3 Bucket
             for calibrated_filename in calibrated_filenames:
+                filename_key = create_s3_file_key(
+                    science_filename_parser, calibrated_filename
+                )
                 status = self.build_status(
                     status=Status.PENDING,
                     message=f"File {calibrated_filename} Needs Further Processing",
@@ -222,7 +226,7 @@ class FileProcessor:
                 self._track_file_metatracker(
                     science_filename_parser,
                     Path("/tmp") / calibrated_filename,
-                    calibrated_filename,
+                    filename_key,
                     destination_bucket,
                     science_product_id,
                     status=status,

@@ -14,16 +14,9 @@ The container will contain the latest release code as the production environment
 1. Build the lambda container image (from within the lambda_function folder) you'd like to test: 
     
 ```sh
-docker build -t processing_function:latest . --no-cache
-```
-
-**Note**: For Private Instrument Packages, you will need to pass in a GitHub Token as a build argument:
-
-```sh
 docker build \
     --build-arg BASE_IMAGE=$BASE_IMAGE \                  # Optional: specify base image
     --build-arg REQUIREMENTS_FILE=$REQUIREMENTS_FILE \    # Optional: specify requirements file
-    --build-arg GITHUB_TOKEN=$GITHUB_TOKEN \              # GitHub Personal Access Token for private repo access
     -t sdc_aws_processing_lambda:latest . \
     --network host
 ```
@@ -35,24 +28,15 @@ docker run \
   -p 9000:8080 \
   -v <directory_for_processed_files>:/test_data \
   -e SDC_AWS_FILE_PATH=/test_data/<file_to_process_name> \
-  processing_function:latest`
-```
-
-**Note**: Again, for Private Instrument Packages, you will need to pass in a GitHub Token as an environment variable:
-
-```sh
-docker run \
-  -p 9000:8080 \
-    -v <directory_for_processed_files>:/test_data \
-    -e SDC_AWS_FILE_PATH=/test_data/<file_to_process_name> \
-    -e SWXSOC_MISSION=padre \                       # Specify mission for instrument package
-    -e GITHUB_TOKEN=$GITHUB_TOKEN \                 # GitHub Personal Access Token for
-    processing_function:latest
+  sdc_aws_processing_lambda:latest`
 ```
 
 3. From a `separate` terminal, make a curl request to the running lambda function:
 
-    `curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @lambda_function/tests/test_data/test_eea_event.json`
+```sh
+curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
+  -d @lambda_function/tests/test_data/test_eea_event.json
+```
 
 4. Close original terminal running the docker image.
 

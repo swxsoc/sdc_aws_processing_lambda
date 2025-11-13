@@ -65,6 +65,7 @@ def handle_event(event, context) -> dict:
         for s3_event in records:
             s3_bucket = s3_event["s3"]["bucket"]["name"]
             file_key = s3_event["s3"]["object"]["key"]
+            log.info(f"Processing for File Key: {file_key} in Bucket: {s3_bucket}")
 
             FileProcessor(
                 s3_bucket=s3_bucket, file_key=file_key, environment=environment
@@ -260,14 +261,17 @@ class FileProcessor:
                     fromlist=["data"],
                 )
                 # Get all files in test data directory
-                test_data_dir = Path(instr_pkg_data.__path__[0])
+                test_data_dir = Path(instr_pkg_data.__path__[0]) / "test"
+                log.info(f"Test data directory: {test_data_dir}")
                 test_data_files = list(test_data_dir.glob("**/*"))
                 log.info(f"Found {len(test_data_files)} files in test data directory")
                 log.info(f"Using {test_data_files} as test data")
-                # Get any files ending in .bin or .cdf and calibrate them
+                # Stub path list for calibrated files
+                path_list = []
+                # Loop the test data files for calibration
                 for test_data_file in test_data_files:
-                    if test_data_file.suffix in [".bin", ".cdf", ".fits"]:
-                        log.info(f"Calibrating {test_data_file}")
+                    if test_data_file.suffix in [".bin", ".cdf", ".fits", ".csv"]:
+                        log.info(f"Calibrating {test_data_file.name}")
                         # Make /test_data directory if it doesn't exist
                         Path("/test_data").mkdir(parents=True, exist_ok=True)
                         # Copy file to /test_data directory using shutil
@@ -275,18 +279,20 @@ class FileProcessor:
                         file_path = Path(f"/test_data/{test_data_file_path.name}")
                         shutil.copy(test_data_file_path, file_path)
                         # Calibrate file
-                        calibrated_filename = calibration.process_file(file_path)[0]
-                        # Copy calibrated file to test data directory
-                        calibrated_file_path = Path(calibrated_filename)
-                        # Return name of calibrated file
-                        log.info(f"Calibrated file saved as {calibrated_file_path}")
+                        files_list = calibration.process_file(file_path)
+                        
+                        if len(files_list) == 0:
+                            log.warning(f"No calibrated files generated for {file_path}")
+                            continue
+                        for generated_file in files_list:
+                            # Copy calibrated file to test data directory
+                            calibrated_file_path = Path(generated_file)
+                            # Return name of calibrated file
+                            log.info(f"Calibrated file saved as {calibrated_file_path}")
+                            path_list.append(calibrated_file_path.name)
+                # Return list of calibrated files
+                return path_list
 
-                        return calibrated_filename
-
-                # If no files ending in .bin or .cdf are found, raise an error
-                raise FileNotFoundError(
-                    "No files ending in .bin or .cdf found in test data directory"
-                )
             log.info(f"Calibrating {file_path}")
             # Get name of new file
             files_list = calibration.process_file(Path(file_path))

@@ -13,11 +13,42 @@ The container will contain the latest release code as the production environment
 ### **Testing Locally (Using own Test Data)**:
 1. Build the lambda container image (from within the lambda_function folder) you'd like to test: 
     
-    `docker build -t processing_function:latest . --no-cache`
+```sh
+docker build -t processing_function:latest . --no-cache
+```
+
+**Note**: For Private Instrument Packages, you will need to pass in a GitHub Token as a build argument:
+
+```sh
+docker build \
+    --build-arg BASE_IMAGE=$BASE_IMAGE \                  # Optional: specify base image
+    --build-arg REQUIREMENTS_FILE=$REQUIREMENTS_FILE \    # Optional: specify requirements file
+    --build-arg GITHUB_TOKEN=$GITHUB_TOKEN \              # GitHub Personal Access Token for private repo access
+    -t sdc_aws_processing_lambda:latest . \
+    --network host
+```
 
 2. Run the lambda container image you've built, this will start the lambda runtime environment:
     
-    `docker run -p 9000:8080 -v <directory_for_processed_files>:/test_data -e SDC_AWS_FILE_PATH=/test_data/<file_to_process_name> processing_function:latest`
+```sh
+docker run \
+  -p 9000:8080 \
+  -v <directory_for_processed_files>:/test_data \
+  -e SDC_AWS_FILE_PATH=/test_data/<file_to_process_name> \
+  processing_function:latest`
+```
+
+**Note**: Again, for Private Instrument Packages, you will need to pass in a GitHub Token as an environment variable:
+
+```sh
+docker run \
+  -p 9000:8080 \
+    -v <directory_for_processed_files>:/test_data \
+    -e SDC_AWS_FILE_PATH=/test_data/<file_to_process_name> \
+    -e SWXSOC_MISSION=padre \                       # Specify mission for instrument package
+    -e GITHUB_TOKEN=$GITHUB_TOKEN \                 # GitHub Personal Access Token for
+    processing_function:latest
+```
 
 3. From a `separate` terminal, make a curl request to the running lambda function:
 
@@ -50,4 +81,4 @@ The container will contain the latest release code as the production environment
 
 
 ### **How this Lambda Function is deployed**
-This lambda function is part of the main SWxSOC Pipeline ([Architecture Repo Link](https://github.com/HERMES-SOC/sdc_aws_pipeline_architecture)). It is deployed via AWS Codebuild within that repository. It is first built and tagged within the appropriate production or development repository (depending if it is a release or commit). View the Codebuild CI/CD file [here](buildspec.yml).
+This lambda function is part of the main SWxSOC Pipeline ([Architecture Repo Link](https://github.com/swxsoc/sdc_aws_architecture)). It is deployed via AWS Codebuild within that repository. It is first built and tagged within the appropriate production or development repository (depending if it is a release or commit). View the Codebuild CI/CD file [here](buildspec.yml).

@@ -7,6 +7,10 @@ FROM ${BASE_IMAGE}
 ARG ROOT="/"
 ARG FUNCTION_DIR="/lambda_function/"
 
+# Set GitHub Token for private repo access
+ARG GITHUB_TOKEN
+RUN git config --global credential.helper '!f() { echo username=x-oauth-basic; echo password=$GITHUB_TOKEN; }; f'
+
 # Set default values for requirements file
 ARG REQUIREMENTS_FILE="hermes-requirements.txt"
 

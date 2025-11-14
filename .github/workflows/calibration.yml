@@ -15,11 +15,22 @@ jobs:
     - name: Build Lambda Docker Image
       run: |
         cd lambda_function
-        docker build -t processing_function:latest .
+        export BASE_IMAGE=public.ecr.aws/w5r9l1c8/dev-padre-swsoc-docker-lambda-base:latest
+        export REQUIREMENTS_FILE=padre-requirements.txt
+        docker build \
+          --build-arg BASE_IMAGE=$BASE_IMAGE \
+          --build-arg REQUIREMENTS_FILE=$REQUIREMENTS_FILE \
+          -t processing_function:latest .
 
     - name: Run Lambda Docker Container
       run: |
-        docker run -d --name processing_lambda -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True -e SWXSOC_MISSION=hermes processing_function:latest
+        docker run -d \
+          --name processing_lambda \
+          -p 9000:8080 \
+          -v lambda_function/tests/test_data/:/test_data \
+          -e SWXSOC_MISSION=padre \
+          -e SDC_AWS_FILE_PATH=/test_data/padre_get_CUBEADCS_GEN2_OP_STATUS_COMMON_Data_1762004752547_1762005892626.csv \
+          processing_function:latest
         container_id=$(docker ps -qf "ancestor=processing_function:latest")
         echo "Container ID: $container_id"
 
@@ -30,7 +41,7 @@ jobs:
       id: test-lambda
       run: |
         # Run curl and write the HTTP status code to a variable
-        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @lambda_function/tests/test_data/test_eea_event.json)
+        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @lambda_function/tests/test_data/test_craft_event.json)
         echo "HTTP Status: $HTTP_STATUS"
 
         # Grep the HTTP status code from the curl output for 200 (success)

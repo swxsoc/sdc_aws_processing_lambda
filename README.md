@@ -28,7 +28,7 @@ docker run \
   -p 9000:8080 \
   -v <directory_for_processed_files>:/test_data \
   -e SDC_AWS_FILE_PATH=/test_data/<file_to_process_name> \
-  sdc_aws_processing_lambda:latest`
+  sdc_aws_processing_lambda:latest
 ```
 
 3. From a `separate` terminal, make a curl request to the running lambda function:

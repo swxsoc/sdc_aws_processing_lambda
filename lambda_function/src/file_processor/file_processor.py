@@ -183,7 +183,7 @@ class FileProcessor:
             # If calibrated files are found, set status to success
             status = self.build_status(
                 status=Status.SUCCESS,
-                message=f"File Processed Successfully",
+                message="File Processed Successfully",
                 total_time=total_time,
             )
 
@@ -312,7 +312,7 @@ class FileProcessor:
                     path_list.append(calibrated_filename)
                     log.info(f"Calibrated file saved as {calibrated_filename}")
                 else:
-                    # We want to pass-through None values to indicate no file was created
+                    # Pass-through None values to indicate no file was created
                     path_list.append(None)
                     log.warning(f"'None' file generated for {file_path}")
 
@@ -389,7 +389,8 @@ class FileProcessor:
         secret_arn = os.getenv("RDS_SECRET_ARN", None)
         if not secret_arn:
             log.error(
-                f"Failed to update MetaTracker for file {file_path}. No RDS Secret ARN found in environment variables."
+                f"Failed to update MetaTracker for file {file_path}. ",
+                "No RDS Secret ARN found in environment variables."
             )
             return None, None
 

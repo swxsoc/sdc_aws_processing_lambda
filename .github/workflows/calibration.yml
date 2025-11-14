@@ -27,7 +27,7 @@ jobs:
         docker run -d \
           --name processing_lambda \
           -p 9000:8080 \
-          -v lambda_function/tests/test_data/:/test_data \
+          -v $PWD/lambda_function/tests/test_data/:/test_data \
           -e SWXSOC_MISSION=padre \
           -e SDC_AWS_FILE_PATH=/test_data/padre_get_CUBEADCS_GEN2_OP_STATUS_COMMON_Data_1762004752547_1762005892626.csv \
           processing_function:latest

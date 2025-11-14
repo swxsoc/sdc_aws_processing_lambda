@@ -66,7 +66,6 @@ def handle_event(event, context) -> dict:
         for s3_event in records:
             s3_bucket = s3_event["s3"]["bucket"]["name"]
             file_key = s3_event["s3"]["object"]["key"]
-            log.info(f"Processing for File Key: {file_key} in Bucket: {s3_bucket}")
 
             FileProcessor(
                 s3_bucket=s3_bucket, file_key=file_key, environment=environment

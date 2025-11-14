@@ -27,9 +27,9 @@ jobs:
         docker run -d \
           --name processing_lambda \
           -p 9000:8080 \
-          -v $PWD/lambda_function/tests/test_data/:/test_data \
+          -v "${{ github.workspace }}/lambda_function/tests/test_data/:/test_data" \
           -e SWXSOC_MISSION=padre \
-          -e SDC_AWS_FILE_PATH=/test_data/padre_get_CUBEADCS_GEN2_OP_STATUS_COMMON_Data_1762004752547_1762005892626.csv \
+          -e SDC_AWS_FILE_PATH=/test_data/padre_get_CUBEADCS_GEN2_OP_STATUS_APP_Data_1761936771334_1762106179414.csv \
           processing_function:latest
         container_id=$(docker ps -qf "ancestor=processing_function:latest")
         echo "Container ID: $container_id"

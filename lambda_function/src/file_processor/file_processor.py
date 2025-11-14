@@ -390,7 +390,7 @@ class FileProcessor:
         if not secret_arn:
             log.error(
                 f"Failed to update MetaTracker for file {file_path}. ",
-                "No RDS Secret ARN found in environment variables."
+                "No RDS Secret ARN found in environment variables.",
             )
             return None, None
 

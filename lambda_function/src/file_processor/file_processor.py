@@ -19,7 +19,7 @@ import swxsoc
 
 from sdc_aws_utils.logging import log, configure_logger
 from sdc_aws_utils.config import (
-    INSTR_TO_PKG,
+    get_instrument_package,
     parser as science_filename_parser,
     get_instrument_bucket,
 )
@@ -253,7 +253,7 @@ class FileProcessor:
         try:
             # Dynamically import instrument package
             instr_pkg = __import__(
-                f"{INSTR_TO_PKG[instrument]}.calibration",
+                f"{get_instrument_package(instrument)}.calibration",
                 fromlist=["calibration"],
             )
             calibration = getattr(instr_pkg, "calibration")
@@ -262,7 +262,7 @@ class FileProcessor:
             if os.getenv("USE_INSTRUMENT_TEST_DATA") == "True":
                 log.info("Using test data from instrument package")
                 instr_pkg_data = __import__(
-                    f"{INSTR_TO_PKG[instrument]}.data",
+                    f"{get_instrument_package(instrument)}.data",
                     fromlist=["data"],
                 )
                 # Get all files in test data directory

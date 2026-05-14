@@ -4,20 +4,26 @@ which contains the logicthat initializes the FileProcessor class
 in it's correct environment.
 """
 
+from typing import Any
+
 from file_processor import file_processor
 
 
-def handler(event, context) -> dict:
+def handler(event: dict[str, Any], context: Any) -> dict[str, int | str]:
     """
-    This is the lambda handler function that acts as a proxy
-    to the main function handle_event
+    Handle the AWS Lambda invocation.
 
-    :param event: Event data passed from the lambda trigger
-    :type event: dict
-    :param context: Lambda context
-    :type context: dict
-    :return: Returns a 200 (Successful) / 500 (Error) HTTP response
-    :rtype: dict
+    Parameters
+    ----------
+    event : dict[str, Any]
+        Lambda event payload, typically containing S3 event records.
+    context : Any
+        AWS Lambda runtime context object.
+
+    Returns
+    -------
+    dict[str, int | str]
+        Response dictionary containing ``statusCode`` and serialized ``body``.
     """
 
     return file_processor.handle_event(event, context)

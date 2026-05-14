@@ -4,36 +4,25 @@ HERMES instrument library to use for processing a file, based on the S3 bucket
 in which the file is located.
 """
 
-from enum import Enum
-import time
-import os
 import json
-from pathlib import Path
-from itertools import combinations
+import os
 import shutil
+import time
 import traceback
+from enum import Enum
+from itertools import combinations
+from pathlib import Path
 from typing import Tuple
 
-import swxsoc
-
-
-from sdc_aws_utils.logging import log, configure_logger
-from sdc_aws_utils.config import (
-    get_instrument_package,
-    parser as science_filename_parser,
-    get_instrument_bucket,
-)
-from sdc_aws_utils.aws import (
-    parse_file_key,
-    get_science_file,
-    push_science_file,
-)
-
-import metatracker
 import boto3
+import metatracker
 import psycopg2
-from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception_type
-
+import swxsoc
+from sdc_aws_utils.aws import get_science_file, parse_file_key, push_science_file
+from sdc_aws_utils.config import get_instrument_bucket, get_instrument_package
+from sdc_aws_utils.config import parser as science_filename_parser
+from sdc_aws_utils.logging import configure_logger, log
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random
 
 # Configure logger
 configure_logger()
@@ -491,7 +480,7 @@ class FileProcessor:
                 config = {"instrument_configuration_id": config_id}
                 config.update(
                     {
-                        f"instrument_{i+1}_id": combo[i] if i < len(combo) else None
+                        f"instrument_{i + 1}_id": combo[i] if i < len(combo) else None
                         for i in range(len(instruments))
                     }
                 )

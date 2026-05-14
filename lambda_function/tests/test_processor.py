@@ -1,17 +1,14 @@
-import pytest
-import os
 import json
-from moto import mock_s3
+import os
 from pathlib import Path
+
+import pytest
+from moto import mock_s3
+from src.file_processor.file_processor import FileProcessor  # noqa: E402
+from src.file_processor.file_processor import handle_event  # noqa: E402
 from swxsoc import log
 
 log.disable_warnings_logging()  # noqa: E402
-
-os.environ["SDC_AWS_CONFIG_FILE_PATH"] = "lambda_function/src/config.yaml"
-from src.file_processor.file_processor import (  # noqa: E402
-    handle_event,  # noqa: E402
-    FileProcessor,  # noqa: E402
-)  # noqa: E402
 
 
 @pytest.fixture

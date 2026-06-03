@@ -1,0 +1,15 @@
+{
+   "Records":[
+      {
+         "Sns":{
+            "Message":"{\r\n\"Records\": [\r\n{\r\n\"eventSource\": \"aws:s3\",\r\n\"awsRegion\": \"us-east-1\",\r\n\"eventTime\": \"2022-07-25T09:35:08.284Z\",\r\n\"eventName\": \"ObjectCreated:Put\",\r\n\"s3\": {\r\n\"bucket\": {\r\n\"name\": \"dev-swxsoc-pipeline-reach\"\r\n},\r\n\"object\": {\r\n\"key\": \"REACH-TEST_20250904T000000_20250904T010000.csv\",\r\n\"size\": 68221,\r\n\"eTag\": \"32d82e8a2e72af004c557c4e369e89ff\",\r\n\"sequencer\": \"0062DE63CC330B223E\"\r\n}\r\n}\r\n}\r\n]\r\n}",
+            "MessageAttributes":{
+               "Test":{
+                  "Type":"String",
+                  "Value":"TestString"
+               }
+            }
+         }
+      }
+   ]
+}

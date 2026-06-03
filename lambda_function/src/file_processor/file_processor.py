@@ -1,7 +1,5 @@
 """
-This module contains the FileProcessor class, which determines the appropriate
-HERMES instrument library to use for processing a file, based on the S3 bucket
-in which the file is located.
+FileProcessor class, which determines the appropriate instrument library to use for processing a file.
 """
 
 import json
@@ -10,34 +8,43 @@ import shutil
 import time
 import traceback
 from enum import Enum
-from itertools import combinations
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Callable
 
 import boto3
-import metatracker
 import psycopg2
 import swxsoc
-from sdc_aws_utils.aws import get_science_file, parse_file_key, push_science_file
+from metatracker.database import create_engine
+from metatracker.database.tables import create_tables
+from metatracker.tracker import tracker
+from sdc_aws_utils.aws import (get_science_file, parse_file_key,
+                               push_science_file)
 from sdc_aws_utils.config import get_instrument_bucket, get_instrument_package
 from sdc_aws_utils.config import parser as science_filename_parser
 from sdc_aws_utils.logging import configure_logger, log
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random
+from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
+                      wait_random)
 
 # Configure logger
 configure_logger()
 
 
-def handle_event(event, context) -> dict:
+def handle_event(event: dict[str, Any], context: Any) -> dict[str, int | str]:
     """
-    Handles the event passed to the lambda function to initialize the FileProcessor.
+    Process a Lambda event and dispatch file processing work.
 
-    :param event: Event data passed from the Lambda.
-    :type event: dict
-    :param context: Lambda context.
-    :type context: object
-    :return: Returns a 200 (Successful) / 500 (Error) HTTP response.
-    :rtype: dict
+    Parameters
+    ----------
+    event : dict[str, Any]
+        Triggering AWS Lambda event. Supports S3 ``Records`` events and empty
+        events that trigger a full incoming-bucket scan and sorting of all files.
+    context : Any
+        AWS Lambda context object (accepted for compatibility).
+
+    Returns
+    -------
+    dict[str, int | str]
+        Response dictionary containing ``statusCode`` and serialized ``body``.
     """
     try:
         environment = os.getenv("LAMBDA_ENVIRONMENT", "DEVELOPMENT")
@@ -75,22 +82,31 @@ class Status(Enum):
 
 class FileProcessor:
     """
-    The FileProcessor class will then determine which instrument
-    library to use to process the file.
-
-    :param s3_bucket: The name of the S3 bucket the file is located in
-    :type s3_bucket: str
-    :param file_key: The name of the S3 object that is being processed
-    :type file_key: str
-    :param environment: The environment the FileProcessor is running in
-    :type environment: str
-    :param dry_run: Whether or not the FileProcessor is performing a dry run
-    :type dry_run: bool
+    Determine the instrument package to use and process an input science file.
     """
 
     def __init__(
-        self, s3_bucket: str, file_key: str, environment: str, dry_run: str = None
+        self,
+        s3_bucket: str,
+        file_key: str,
+        environment: str,
+        dry_run: bool | None = None,
     ) -> None:
+        """
+        Initialize a processor instance and immediately process the file.
+
+        Parameters
+        ----------
+        s3_bucket : str
+            Name of the S3 bucket containing the file to process.
+        file_key : str
+            Key of the S3 object to process.
+        environment : str
+            Deployment environment used for instrument bucket/package lookup.
+        dry_run : bool | None, optional
+            When set, runs in dry-run mode where supported by dependencies.
+            Default is None.
+        """
         # Initialize Class Variables
         self.instrument_bucket_name = s3_bucket
 
@@ -107,11 +123,11 @@ class FileProcessor:
 
     def _process_file(self) -> None:
         """
-        This method serves as the main entry point for the FileProcessor class.
-        It will then determine which instrument library to use to process the file.
+        Process one source file through calibration, upload, and tracking steps.
 
-        :return: None
-        :rtype: None
+        Returns
+        -------
+        None
         """
         log.debug(
             {
@@ -224,20 +240,27 @@ class FileProcessor:
                 )
 
     @staticmethod
-    def _calibrate_file(instrument, file_path, dry_run=False):
+    def _calibrate_file(
+        instrument: str, file_path: str | Path, dry_run: bool = False
+    ) -> list[str | None] | None:
         """
-        Calibrates the file using the appropriate instrument library.
-        This involves dynamic import of the calibration module and
-        processing of the file.
+        Calibrate a file using the selected instrument calibration package.
 
-        :param instrument: The name of the instrument used for calibration.
-        :type instrument: str
-        :param file_path: The path to the file that needs to be calibrated.
-        :type file_path: Path
-        :param dry_run: Indicates whether the operation is a dry run.
-        :type dry_run: bool
-        :return: The filename of the calibrated file.
-        :rtype: string
+        Parameters
+        ----------
+        instrument : str
+            Instrument short name used to resolve the package import.
+        file_path : str | Path
+            Source file path passed to the instrument calibration function.
+        dry_run : bool, optional
+            Dry-run flag accepted for interface compatibility. Default is False.
+
+        Returns
+        -------
+        list[str | None] | None
+            Generated calibrated file names, preserving None entries when
+            downstream calibration returns them. Returns None for handled
+            ValueError/FileNotFoundError paths.
         """
         try:
             # Dynamically import instrument package
@@ -349,37 +372,36 @@ class FileProcessor:
         reraise=True,
     )
     def _track_file_metatracker(
-        science_filename_parser: callable,
+        science_filename_parser: Callable[[str], dict[str, Any]],
         file_path: Path,
         s3_key: str,
         s3_bucket: str,
-        science_product_id: int = None,
-        status: dict = None,
-    ) -> Tuple[int, int]:
+        science_product_id: int | None = None,
+        status: dict[str, Any] | None = None,
+    ) -> tuple[int | None, int | None]:
         """
-        Tracks processed science product in the File Metadata tracker database.
-        It involves initializing the database engine, setting up database tables,
-        and tracking both the original and processed files.
+        Track a science file and status metadata in the MetaTracker database.
 
         Parameters
         ----------
-        science_filename_parser : function
-            The parser function to process file names.
+        science_filename_parser : Callable[[str], dict[str, Any]]
+            Parser used by MetaTracker to extract metadata from filenames.
         file_path : Path
-            The path of the file in the filesystem.
+            Local file path of the source or calibrated product.
         s3_key : str
-            The S3 key of the file.
+            S3 object key for the tracked file.
         s3_bucket : str
-            The S3 bucket of the file.
+            S3 bucket name for the tracked file.
         science_product_id : int, optional
-            The ID of the science product, by default None.
-        status : dict, optional
-            The status dictionary for tracking, by default None.
+            Existing science product identifier, if already created.
+        status : dict[str, Any], optional
+            Processing status payload to persist with the file record.
 
         Returns
         -------
-        Tuple[int, int]
-            A tuple containing the science file ID and science product ID.
+        tuple[int | None, int | None]
+            Tuple of (science_file_id, science_product_id). Returns
+            (None, None) on missing configuration or handled errors.
         """
         secret_arn = os.getenv("RDS_SECRET_ARN", None)
         if not secret_arn:
@@ -405,18 +427,6 @@ class FileProcessor:
                 f"postgresql://{secret['username']}:{secret['password']}@"
                 f"{secret['host']}:{secret['port']}/{secret['dbname']}"
             )
-
-            metatracker_config = FileProcessor.get_metatracker_config(swxsoc.config)
-
-            log.debug(swxsoc.config)
-
-            log.debug(metatracker_config)
-
-            metatracker.set_config(metatracker_config)
-
-            from metatracker.database import create_engine
-            from metatracker.database.tables import create_tables
-            from metatracker.tracker import tracker
 
             # Initialize the database engine
             database_engine = create_engine(connection_string)
@@ -447,74 +457,30 @@ class FileProcessor:
             return None, None
 
     @staticmethod
-    def get_metatracker_config(swxsoc_config: dict) -> dict:
-        """
-        Creates the MetaTracker configuration from the swxsoc configuration.
-
-        :param config: The swxsoc configuration.
-        :type config: dict
-        :return: The MetaTracker configuration.
-        :rtype: dict
-        """
-        mission_data = swxsoc_config["mission"]
-        instruments = mission_data["inst_names"]
-
-        instruments_list = [
-            {
-                "instrument_id": idx + 1,
-                "description": (
-                    f"{mission_data['inst_fullnames'][idx]} "
-                    f"({mission_data['inst_targetnames'][idx]})"
-                ),
-                "full_name": mission_data["inst_fullnames"][idx],
-                "short_name": mission_data["inst_shortnames"][idx],
-            }
-            for idx in range(len(instruments))
-        ]
-
-        # Generate all possible configurations of the instruments
-        instrument_configurations = []
-        config_id = 1
-        for r in range(1, len(instruments) + 1):
-            for combo in combinations(range(1, len(instruments) + 1), r):
-                config = {"instrument_configuration_id": config_id}
-                config.update(
-                    {
-                        f"instrument_{i + 1}_id": combo[i] if i < len(combo) else None
-                        for i in range(len(instruments))
-                    }
-                )
-                instrument_configurations.append(config)
-                config_id += 1
-
-        metatracker_config = {
-            "mission_name": mission_data["mission_name"],
-            "instruments": instruments_list,
-            "instrument_configurations": instrument_configurations,
-        }
-
-        return metatracker_config
-
-    @staticmethod
     def build_status(
         status: Status,
         message: str,
-        total_time: float = None,
-        origin_file_ids: list = None,
-    ) -> dict:
+        total_time: float | None = None,
+        origin_file_ids: list[int | None] | None = None,
+    ) -> dict[str, Any]:
         """
-        Builds a status dictionary for MetaTracker tracking.
+        Build a status payload for MetaTracker state updates.
 
-        :param start_time: Timestamp when processing began (from `time.time()`).
-        :type start_time: float
-        :param success: Whether processing succeeded.
-        :type success: bool
-        :param message: Message to include with the status.
-        :type message: str
-        :param origin_file_ids: Optional IDs of the original file if this is a processed result.
-        :type origin_file_ids: list
-        :return: Dictionary representing processing status.
-        :rtype: dict
+        Parameters
+        ----------
+        status : Status
+            Processing state enum value.
+        message : str
+            Human-readable description of the processing state.
+        total_time : float | None, optional
+            Processing duration in seconds.
+        origin_file_ids : list[int | None] | None, optional
+            Source file IDs for downstream derived products.
+
+        Returns
+        -------
+        dict[str, Any]
+            Status payload persisted by MetaTracker.
         """
 
         status = {
@@ -537,7 +503,17 @@ class FileProcessor:
     stop=stop_after_attempt(10),
     reraise=True,
 )
-def fetch_data():
+def fetch_data() -> None:
+    """
+    Requeue previously failed files by invoking this Lambda asynchronously.
+
+    Reads failed records from MetaTracker tables, wraps each file as an SNS-like
+    event payload, and invokes the current Lambda function for retry processing.
+
+    Returns
+    -------
+    None
+    """
     mission_name = os.getenv("SWXSOC_MISSION", "swxsoc")
     secret_arn = os.getenv("RDS_SECRET_ARN")
     lambda_function_name = os.getenv("AWS_LAMBDA_FUNCTION_NAME")

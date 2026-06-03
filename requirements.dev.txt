@@ -5,3 +5,18 @@ pytest==9.0.3
 pytest-astropy==0.11.0
 pytest-cov==4.1.0
 ruff
+
+# Downstream Dependencies for Unit Testing Processing Code
+metatracker @ git+https://github.com/swxsoc/MetaTracker.git
+# HERMES
+# hermes_spani @ git+https://github.com/HERMES-SOC/hermes_spani.git
+# hermes_eea @ git+https://github.com/HERMES-SOC/hermes_eea.git
+# hermes_nemisis @ git+https://github.com/HERMES-SOC/hermes_nemisis.git
+# hermes_merit @ git+https://github.com/HERMES-SOC/hermes_merit.git
+# PADRE
+padre_meddea @ git+https://github.com/PADRESat/padre_meddea.git
+padre_sharp @ git+https://github.com/PADRESat/padre_sharp.git
+padre_craft @ git+https://github.com/PADRESat/padre_craft.git
+tenacity==9.1.2
+# SWxSOC Pipeline
+swxsoc_reach @ git+https://github.com/swxsoc/swxsoc_reach.git

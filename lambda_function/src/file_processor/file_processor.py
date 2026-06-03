@@ -17,13 +17,11 @@ import swxsoc
 from metatracker.database import create_engine
 from metatracker.database.tables import create_tables
 from metatracker.tracker import tracker
-from sdc_aws_utils.aws import (get_science_file, parse_file_key,
-                               push_science_file)
+from sdc_aws_utils.aws import get_science_file, parse_file_key, push_science_file
 from sdc_aws_utils.config import get_instrument_bucket, get_instrument_package
 from sdc_aws_utils.config import parser as science_filename_parser
 from sdc_aws_utils.logging import configure_logger, log
-from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
-                      wait_random)
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random
 
 # Configure logger
 configure_logger()

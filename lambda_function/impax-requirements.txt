@@ -1,0 +1,5 @@
+sdc_aws_utils @ git+https://github.com/swxsoc/sdc_aws_utils.git
+metatracker @ git+https://github.com/swxsoc/MetaTracker.git
+impax_craft @ git+https://github.com/iMPAXSat/impax_craft.git
+impax_iaxis @ git+https://github.com/iMPAXSat/impax_iaxis.git
+impax_ifire @ git+https://github.com/iMPAXSat/impax_ifire.git

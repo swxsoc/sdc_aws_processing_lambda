@@ -34,10 +34,12 @@ COPY src/. ${FUNCTION_DIR}
 RUN chmod -R 755 ${FUNCTION_DIR}
 RUN chown -R 1000:1000 ${FUNCTION_DIR}
 
-# Package config locations (baked under ${FUNCTION_DIR}config/<pkg>/).
-# See src/config/README.md for the convention and the /tmp/<pkg>/ rule for
-# any package that needs writable scratch space at runtime.
-ENV ccsdspy_CONFIGDIR=${FUNCTION_DIR}config/ccsdspy
+# Package config locations. Source-of-truth YAML lives in src/config/<pkg>/
+# (baked into the image at ${FUNCTION_DIR}config/<pkg>/) and is mirrored to
+# the writable /tmp/config/<pkg>/ at runtime by entry_script.sh. Each package
+# env var below points at the /tmp mirror because some packages (e.g.
+# ccsdspy) require their CONFIGDIR to be writable. See src/config/README.md.
+ENV ccsdspy_CONFIGDIR=/tmp/config/ccsdspy
 
 # Copy entry script into function director (Script is used distinguish dev/production mode)
 COPY entry_script.sh ${FUNCTION_DIR}

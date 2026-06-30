@@ -34,6 +34,11 @@ COPY src/. ${FUNCTION_DIR}
 RUN chmod -R 755 ${FUNCTION_DIR}
 RUN chown -R 1000:1000 ${FUNCTION_DIR}
 
+# Package config locations (baked under ${FUNCTION_DIR}config/<pkg>/).
+# See src/config/README.md for the convention and the /tmp/<pkg>/ rule for
+# any package that needs writable scratch space at runtime.
+ENV ccsdspy_CONFIGDIR=${FUNCTION_DIR}config/ccsdspy
+
 # Copy entry script into function director (Script is used distinguish dev/production mode)
 COPY entry_script.sh ${FUNCTION_DIR}
 

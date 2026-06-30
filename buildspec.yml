@@ -1,5 +1,9 @@
 version: 0.2
 
+env:
+  variables:
+    MISSION_NAME: hermes
+
 phases:
   pre_build:
     commands:
@@ -12,36 +16,91 @@ phases:
       - echo Linting with Black...
       - black --check --diff lambda_function
       - echo ________________________________
-      
+
       - echo Linting with Flake...
       - flake8 --count --max-line-length 88 lambda_function --exclude lambda_function_test_script.py
       - echo ________________________________
-    
+
   build:
     commands:
-      - REGION=us-east-1
-      - echo Login to Private ECR $REGION
-      - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin 351967858401.dkr.ecr.$REGION.amazonaws.com
-      - echo ________________________________
-      
-      - echo Create Date Tag
-      - export TAG=$(date +%Y-%m-%d-%H-%M-%S)
-      - echo ________________________________
+      - |
+        set -eu
 
-      - echo Build Docker Image
-      - docker build -t 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest lambda_function/.
-      
-      - echo Tagging Docker Image...
-      - docker tag 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG
+        REGION=us-east-1
+        PUBLIC_ECR_NAMESPACE=public.ecr.aws/w5r9l1c8
+        LAMBDA_COMPONENT=processing
+        LAMBDA_PIPELINE=PROCESSING
+        MISSION_SLUG=$(printf '%s' "${MISSION_NAME}" | tr '_' '-')
 
-      - echo Pushing the Docker image with Tags...
-      - docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest
-      - docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG
-      - echo ________________________________
-      
-      - echo Updating Deployment
-      - aws codebuild start-build --project-name build_sdc_aws_pipeline_architecture --region us-east-2 --environment-variables-override name=LAMBDA_PIPELINE,value=PROCESSING,type=PLAINTEXT name=TAG,value=$TAG,type=PLAINTEXT
-      - echo ________________________________
+        if [ "${MISSION_NAME}" = "hermes" ]; then
+          ECR_REPO_NAME="sdc_aws_${LAMBDA_COMPONENT}_lambda"
+          BASE_IMAGE_NAME="swsoc-docker-lambda-base:latest"
+          REQUIREMENTS_FILE="hermes-requirements.txt"
+          ARCHITECTURE_PROJECT_NAME="build_sdc_aws_pipeline_architecture"
+          ARCHITECTURE_PROJECT_REGION="us-east-2"
+        else
+          ECR_REPO_NAME="${MISSION_NAME}_sdc_aws_${LAMBDA_COMPONENT}_lambda"
+          BASE_IMAGE_NAME="${MISSION_SLUG}-swsoc-docker-lambda-base:latest"
+          REQUIREMENTS_FILE="${MISSION_NAME}-requirements.txt"
+          ARCHITECTURE_PROJECT_NAME="build_${MISSION_NAME}_sdc_aws_pipeline_architecture"
+          ARCHITECTURE_PROJECT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
+        fi
+
+        if [ ! -f "lambda_function/${REQUIREMENTS_FILE}" ]; then
+          echo "Missing lambda_function/${REQUIREMENTS_FILE}; add it before building ${MISSION_NAME}."
+          exit 1
+        fi
+
+        ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+        echo Login to Private ECR "${REGION}"
+        aws ecr get-login-password --region "${REGION}" | docker login --username AWS --password-stdin "${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+        echo ________________________________
+
+        if git describe --tags --exact-match > /dev/null 2>&1; then
+          echo "This is a tag push event"
+          CDK_ENVIRONMENT=PRODUCTION
+          ECR_REPO="${ECR_REPO_NAME}"
+          BASE_IMAGE="${PUBLIC_ECR_NAMESPACE}/${BASE_IMAGE_NAME}"
+          VERSION=$(git describe --tags --exact-match)
+        elif [ "${CDK_ENVIRONMENT:-}" = "PRODUCTION" ]; then
+          echo "This is a production environment"
+          CDK_ENVIRONMENT=PRODUCTION
+          ECR_REPO="${ECR_REPO_NAME}"
+          BASE_IMAGE="${PUBLIC_ECR_NAMESPACE}/${BASE_IMAGE_NAME}"
+          VERSION=$(date -u +"%Y%m%d%H%M%S")
+        else
+          echo "This is a development environment"
+          CDK_ENVIRONMENT=DEVELOPMENT
+          ECR_REPO="dev-${ECR_REPO_NAME}"
+          BASE_IMAGE="${PUBLIC_ECR_NAMESPACE}/dev-${BASE_IMAGE_NAME}"
+          VERSION=$(date -u +"%Y%m%d%H%M%S")
+        fi
+
+        FULL_ECR_REPO="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_REPO}"
+        echo "Build Docker Image: ${FULL_ECR_REPO}:${VERSION}"
+        docker build \
+          --build-arg BASE_IMAGE="${BASE_IMAGE}" \
+          --build-arg REQUIREMENTS_FILE="${REQUIREMENTS_FILE}" \
+          -t "${FULL_ECR_REPO}:latest" \
+          lambda_function/.
+
+        echo Tagging Docker Image...
+        docker tag "${FULL_ECR_REPO}:latest" "${FULL_ECR_REPO}:${VERSION}"
+
+        echo Pushing the Docker image with Tags...
+        docker push "${FULL_ECR_REPO}:latest"
+        docker push "${FULL_ECR_REPO}:${VERSION}"
+        echo ________________________________
+
+        echo Updating Deployment
+        aws codebuild start-build \
+          --project-name "${ARCHITECTURE_PROJECT_NAME}" \
+          --region "${ARCHITECTURE_PROJECT_REGION}" \
+          --environment-variables-override \
+            name=CDK_ENVIRONMENT,value="${CDK_ENVIRONMENT}",type=PLAINTEXT \
+            name=MISSION_NAME,value="${MISSION_NAME}",type=PLAINTEXT \
+            name=LAMBDA_PIPELINE,value="${LAMBDA_PIPELINE}",type=PLAINTEXT \
+            name=TAG,value="${VERSION}",type=PLAINTEXT
 
   post_build:
     commands:

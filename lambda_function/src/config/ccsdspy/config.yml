@@ -15,13 +15,16 @@ logger:
   log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
   # Whether to always log messages to a log file
-  log_to_file: false
+  log_to_file: true
 
   # Whether the log file should be in JSON format
   log_file_json: false
 
-  # The file to log messages to
-  log_file_path: ccsdspy.log
+  # The file to log messages to.
+  # Must point at a writable location at Lambda runtime. /tmp/config/ccsdspy/
+  # is seeded by entry_script.sh and is the directory ccsdspy_CONFIGDIR points
+  # at, so it is guaranteed to exist and be writable. See src/config/README.md.
+  log_file_path: /tmp/config/ccsdspy/ccsdspy.log
 
   # Threshold for logging messages to log_file_path
   log_file_level: INFO

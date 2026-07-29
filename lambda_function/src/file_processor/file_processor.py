@@ -17,14 +17,11 @@ import swxsoc
 from metatracker.database import create_engine
 from metatracker.database.tables import create_tables
 from metatracker.tracker import tracker
-from sdc_aws_utils.aws import get_science_file, parse_file_key, push_science_file
-from sdc_aws_utils.config import get_instrument_bucket, get_instrument_package
-from sdc_aws_utils.config import parser as science_filename_parser
-from sdc_aws_utils.logging import configure_logger, log
+from swxsoc import log
+from swxsoc.io.s3 import get_science_file, parse_file_key, push_science_file
+from swxsoc.util.config import get_instrument_bucket, get_instrument_package
+from swxsoc.util.util import parse_science_filename
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random
-
-# Configure logger
-configure_logger()
 
 
 def handle_event(event: dict[str, Any], context: Any) -> dict[str, int | str]:
@@ -142,9 +139,9 @@ class FileProcessor:
         parsed_file_key = parse_file_key(self.file_key)
 
         # Parse the science file name
-        science_file = science_filename_parser(parsed_file_key)
+        science_file = parse_science_filename(parsed_file_key)
         this_instr = science_file["instrument"]
-        destination_bucket = get_instrument_bucket(this_instr, self.environment)
+        destination_bucket = get_instrument_bucket(this_instr)
 
         # Download file from S3 or get local file path
         file_path = get_science_file(
@@ -168,7 +165,7 @@ class FileProcessor:
             )
 
             FileProcessor._track_file_metatracker(
-                science_filename_parser=science_filename_parser,
+                parse_science_filename=parse_science_filename,
                 file_path=Path(file_path),
                 s3_key=self.file_key,
                 s3_bucket=self.instrument_bucket_name,
@@ -192,7 +189,7 @@ class FileProcessor:
 
             # Track the original science file as processed successfully
             science_file_id, science_product_id = FileProcessor._track_file_metatracker(
-                science_filename_parser=science_filename_parser,
+                parse_science_filename=parse_science_filename,
                 file_path=Path(file_path),
                 s3_key=self.file_key,
                 s3_bucket=self.instrument_bucket_name,
@@ -221,7 +218,7 @@ class FileProcessor:
                 )
 
                 push_science_file(
-                    science_filename_parser,
+                    parse_science_filename,
                     destination_bucket,
                     calibrated_filename,
                     self.dry_run,
@@ -229,7 +226,7 @@ class FileProcessor:
 
                 # Track the calibrated file in the CDF Tracker
                 self._track_file_metatracker(
-                    science_filename_parser=science_filename_parser,
+                    parse_science_filename=parse_science_filename,
                     file_path=Path("/tmp") / calibrated_filename,
                     s3_key=calibrated_filename,
                     s3_bucket=destination_bucket,
@@ -370,7 +367,7 @@ class FileProcessor:
         reraise=True,
     )
     def _track_file_metatracker(
-        science_filename_parser: Callable[[str], dict[str, Any]],
+        parse_science_filename: Callable[[str], dict[str, Any]],
         file_path: Path,
         s3_key: str,
         s3_bucket: str,
@@ -382,7 +379,7 @@ class FileProcessor:
 
         Parameters
         ----------
-        science_filename_parser : Callable[[str], dict[str, Any]]
+        parse_science_filename : Callable[[str], dict[str, Any]]
             Parser used by MetaTracker to extract metadata from filenames.
         file_path : Path
             Local file path of the source or calibrated product.
@@ -433,7 +430,7 @@ class FileProcessor:
             create_tables(database_engine)
 
             # Set tracker to MetaTracker
-            meta_tracker = tracker.MetaTracker(database_engine, science_filename_parser)
+            meta_tracker = tracker.MetaTracker(database_engine, parse_science_filename)
 
             if meta_tracker:
                 science_file_id, science_product_id = meta_tracker.track(

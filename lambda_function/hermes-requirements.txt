@@ -1,4 +1,4 @@
-sdc_aws_utils @ git+https://github.com/swxsoc/sdc_aws_utils.git
+swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main
 metatracker @ git+https://github.com/swxsoc/MetaTracker.git
 hermes_spani @ git+https://github.com/HERMES-SOC/hermes_spani.git
 hermes_eea @ git+https://github.com/HERMES-SOC/hermes_eea.git

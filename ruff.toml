@@ -1,0 +1,8 @@
+[lint]
+ignore = [
+    "EXE002",  # Executable file but no shebang present
+    "BLE001",  # Do not catch blind exception: `Exception`
+    "TRY201",  # Use `raise` without specifying exception name
+    "RUF028",  # Invalid formatter suppression comment
+    "SIM115",  # Use a context manager for opening files
+]

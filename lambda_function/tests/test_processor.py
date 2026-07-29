@@ -5,13 +5,12 @@ from pathlib import Path
 import boto3
 import pytest
 from moto import mock_aws as moto_mock_aws
-from src.file_processor.file_processor import FileProcessor  # noqa: E402
-from src.file_processor.file_processor import handle_event  # noqa: E402
+from src.file_processor.file_processor import FileProcessor, handle_event
 from swxsoc import log
 
 TEST_REGION = "us-east-1"
 
-log.disable_warnings_logging()  # noqa: E402
+log.disable_warnings_logging()
 
 
 @pytest.fixture

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 FileProcessor class, which determines the appropriate instrument library to use for processing a file.
 """
@@ -7,9 +8,10 @@ import os
 import shutil
 import time
 import traceback
+from collections.abc import Callable
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import boto3
 import psycopg2
@@ -263,7 +265,7 @@ class FileProcessor:
                 f"{get_instrument_package(instrument)}.calibration",
                 fromlist=["calibration"],
             )
-            calibration = getattr(instr_pkg, "calibration")
+            calibration = instr_pkg.calibration
 
             # If USE_INSTRUMENT_TEST_DATA is set to True, use test data in package
             if os.getenv("USE_INSTRUMENT_TEST_DATA") == "True":

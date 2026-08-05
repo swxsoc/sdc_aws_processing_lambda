@@ -29,7 +29,7 @@ jobs:
           -p 9000:8080 \
           -v "${{ github.workspace }}/lambda_function/tests/test_data/:/test_data" \
           -e SWXSOC_MISSION=padre \
-          -e SDC_AWS_FILE_PATH=/test_data/padre_get_CUBEADCS_GEN2_OP_STATUS_APP_Data_1761936771334_1762106179414.csv \
+          -e SDC_AWS_FILE_PATH=/test_data/padreMDA0_240916122901.dat \
           processing_function:latest
         container_id=$(docker ps -qf "ancestor=processing_function:latest")
         echo "Container ID: $container_id"

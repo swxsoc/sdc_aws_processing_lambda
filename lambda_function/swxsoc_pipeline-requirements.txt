@@ -1,3 +1,4 @@
+psycopg2-binary
 swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main
 metatracker @ git+https://github.com/swxsoc/MetaTracker.git
 swxsoc_reach @ git+https://github.com/swxsoc/swxsoc_reach.git

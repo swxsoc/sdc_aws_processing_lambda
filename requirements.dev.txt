@@ -5,6 +5,7 @@ pytest==9.0.3
 pytest-astropy==0.11.0
 pytest-cov==4.1.0
 ruff
+psycopg2-binary
 
 # Downstream Dependencies for Unit Testing Processing Code
 metatracker @ git+https://github.com/swxsoc/MetaTracker.git

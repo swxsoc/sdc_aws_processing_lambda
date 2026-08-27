@@ -1,9 +1,5 @@
 version: 0.2
 
-env:
-  variables:
-    MISSION_NAME: hermes
-
 phases:
   pre_build:
     commands:
@@ -30,21 +26,24 @@ phases:
         PUBLIC_ECR_NAMESPACE=public.ecr.aws/w5r9l1c8
         LAMBDA_COMPONENT=processing
         LAMBDA_PIPELINE=PROCESSING
+        PROJECT_NAME=${CODEBUILD_BUILD_ID%%:*}
+        PROJECT_MISSION=${PROJECT_NAME#build_}
+        PROJECT_MISSION=${PROJECT_MISSION%_sdc_aws_processing_lambda}
+        MISSION_NAME=${MISSION_NAME:-${PROJECT_MISSION:-hermes}}
         MISSION_SLUG=$(printf '%s' "${MISSION_NAME}" | tr '_' '-')
 
         if [ "${MISSION_NAME}" = "hermes" ]; then
           ECR_REPO_NAME="sdc_aws_${LAMBDA_COMPONENT}_lambda"
           BASE_IMAGE_NAME="swsoc-docker-lambda-base:latest"
           REQUIREMENTS_FILE="hermes-requirements.txt"
-          ARCHITECTURE_PROJECT_NAME="build_sdc_aws_pipeline_architecture"
-          ARCHITECTURE_PROJECT_REGION="us-east-2"
         else
           ECR_REPO_NAME="${MISSION_NAME}_sdc_aws_${LAMBDA_COMPONENT}_lambda"
           BASE_IMAGE_NAME="${MISSION_SLUG}-swsoc-docker-lambda-base:latest"
           REQUIREMENTS_FILE="${MISSION_NAME}-requirements.txt"
-          ARCHITECTURE_PROJECT_NAME="build_${MISSION_NAME}_sdc_aws_pipeline_architecture"
-          ARCHITECTURE_PROJECT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
         fi
+
+        ARCHITECTURE_PROJECT_NAME="build_${MISSION_NAME}_sdc_aws_pipeline_architecture"
+        ARCHITECTURE_PROJECT_REGION="us-east-1"
 
         if [ ! -f "lambda_function/${REQUIREMENTS_FILE}" ]; then
           echo "Missing lambda_function/${REQUIREMENTS_FILE}; add it before building ${MISSION_NAME}."

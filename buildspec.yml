@@ -22,6 +22,13 @@ phases:
       - |
         set -eu
 
+        case "${CODEBUILD_WEBHOOK_EVENT:-}" in
+          PULL_REQUEST_*)
+            echo "Pull request build: skipping image push and deployment"
+            exit 0
+            ;;
+        esac
+
         REGION=us-east-1
         PUBLIC_ECR_NAMESPACE=public.ecr.aws/w5r9l1c8
         LAMBDA_COMPONENT=processing

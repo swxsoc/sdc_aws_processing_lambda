@@ -22,12 +22,13 @@ phases:
       - |
         set -eu
 
-        case "${CODEBUILD_WEBHOOK_EVENT:-}:${CODEBUILD_SOURCE_VERSION:-}" in
-          PULL_REQUEST_*:*|*:pr/*)
-            echo "Pull request build: skipping image push and deployment"
+        if ! git describe --tags --exact-match > /dev/null 2>&1; then
+          git fetch origin main --depth=1
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "Non-main build: skipping image push and deployment"
             exit 0
-            ;;
-        esac
+          fi
+        fi
 
         REGION=us-east-1
         PUBLIC_ECR_NAMESPACE=public.ecr.aws/w5r9l1c8

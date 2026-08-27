@@ -22,8 +22,8 @@ phases:
       - |
         set -eu
 
-        case "${CODEBUILD_WEBHOOK_EVENT:-}" in
-          PULL_REQUEST_*)
+        case "${CODEBUILD_WEBHOOK_EVENT:-}:${CODEBUILD_SOURCE_VERSION:-}" in
+          PULL_REQUEST_*:*|*:pr/*)
             echo "Pull request build: skipping image push and deployment"
             exit 0
             ;;

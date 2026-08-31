@@ -36,9 +36,9 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
 
 ### CI/CD & Linting
 ```bash
-# Lint with Black and Flake8 (as per buildspec.yml)
-black --check --diff lambda_function
-flake8 --count --max-line-length 88 lambda_function
+# Validate style without modifying the checkout
+ruff check .
+ruff format --check .
 
 # Build and push Docker image (run locally to test CI/CD logic)
 cd lambda_function && docker build -t sdc_aws_processing_lambda:latest .
@@ -100,9 +100,9 @@ lambda_function/src/file_processor/file_processor.py imports from:
 - `boto3`: AWS SDK (for S3, Timestream, etc.)
 - `moto==5.0.15`: Mocks AWS services in tests
 - `pytest`, `pytest-astropy`, `pytest-cov`: Testing framework
-- `ruff`, `black`, `flake8`: Code linting
+- `ruff`: Code linting and formatting
 
-**Linting**: Uses `ruff` with specific ignores defined in [ruff.toml](ruff.toml); also runs `black` and `flake8` in CI/CD via [buildspec.yml](buildspec.yml)
+**Linting**: Uses `ruff` with specific ignores defined in [ruff.toml](ruff.toml). GitHub Actions runs validation-only check and format modes; CodeBuild does not duplicate linting.
 
 ## Config Baking Strategy
 
@@ -146,10 +146,12 @@ The `Status` enum (`SUCCESS`, `FAILED`, `PENDING`) tracks file processing state.
 
 ## CI/CD Workflows
 
-See [buildspec.yml](buildspec.yml) for CodeBuild pipeline:
-- **Pre-build**: Install dependencies, run `black` and `flake8` linting
-- **Build**: Log into AWS ECR, build Docker image, tag with timestamp, push to ECR
-- **Post-build**: Trigger downstream `build_sdc_aws_pipeline_architecture` CodeBuild to deploy
+See [buildspec.yml](buildspec.yml) for the CodeBuild pipeline:
+- Publishes only the exact current `main` commit or a release tag
+- Derives and validates mission/environment context from CodeBuild metadata
+- Uses a validated, versioned `PUBLIC_ECR_REPO` base image when supplied upstream
+- Builds and pushes a versioned private ECR image
+- Starts the mission architecture project from `main` with the exact image tag
 
 The function is deployed as a Docker image to AWS ECR and invoked by SNS S3 event notifications.
 

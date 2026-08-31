@@ -8,7 +8,7 @@
 ### **Description**:
 This repository is to define the image to be used for the SWSOC file processing Lambda function container. This container will be built and and stored in the appropriate development/production ECR Repo. 
 
-The container will contain the latest release code as the production environment and the latest code on master as the development. 
+The container will contain the latest release code as the production environment and the latest code on `main` as the development.
 
 ### **Testing Locally (Using own Test Data)**:
 1. Build the lambda container image (from within the lambda_function folder) you'd like to test: 
@@ -65,4 +65,16 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
 
 
 ### **How this Lambda Function is deployed**
-This lambda function is part of the main SWxSOC Pipeline ([Architecture Repo Link](https://github.com/swxsoc/sdc_aws_architecture)). It is deployed via AWS Codebuild within that repository. It is first built and tagged within the appropriate production or development repository (depending if it is a release or commit). View the Codebuild CI/CD file [here](buildspec.yml).
+This lambda function is part of the main SWxSOC Pipeline ([Architecture Repo Link](https://github.com/swxsoc/sdc_aws_architecture)). It is deployed via AWS CodeBuild within that repository. It is first built and tagged within the appropriate production or development repository (depending on whether it is a release or a commit). View the CodeBuild CI/CD file [here](buildspec.yml).
+
+CodeBuild publishes only an exact current `main` commit or a release tag. Pull
+requests, stale commits, and other branches validate without pushing an image.
+The mission is derived from the CodeBuild project name. Development is the
+default; `CDK_ENVIRONMENT=PRODUCTION` or a release tag selects production.
+
+When a mission base-image build starts this project, it passes a versioned
+`PUBLIC_ECR_REPO` URI and the normalized `CDK_ENVIRONMENT`. The build verifies
+that the URI belongs to the expected mission and environment and rejects
+`latest` before using it. Direct Lambda builds fall back to the matching
+mission base image's `latest` tag. Successful image pushes start the mission's
+architecture project from its `main` branch with the immutable Lambda tag.

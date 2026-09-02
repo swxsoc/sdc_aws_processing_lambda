@@ -10,6 +10,49 @@ phases:
   build:
     commands:
       - |
+        BANNER_SOURCE=${CODEBUILD_WEBHOOK_TRIGGER:-${CODEBUILD_SOURCE_VERSION:-manual}}
+        BANNER_ENVIRONMENT=${CDK_ENVIRONMENT:-${ENVIRONMENT:-}}
+        if [ -z "${BANNER_ENVIRONMENT}" ]; then
+          case "${BANNER_SOURCE}" in
+            tag/*|refs/tags/*) BANNER_ENVIRONMENT=PRODUCTION ;;
+            branch/main|main|refs/heads/main) BANNER_ENVIRONMENT=DEVELOPMENT ;;
+            pr/*|refs/pull/*|branch/*|refs/heads/*) BANNER_ENVIRONMENT=VALIDATION ;;
+            *) BANNER_ENVIRONMENT=UNRESOLVED ;;
+          esac
+        fi
+        BANNER_ENVIRONMENT=$(printf '%s' "${BANNER_ENVIRONMENT}" | tr '[:lower:]' '[:upper:]')
+        if [ "${BANNER_ENVIRONMENT}" = VALIDATION ]; then
+          BANNER_ACTION='validate source and skip image deployment'
+        else
+          BANNER_ACTION='build, publish, and deploy image (guarded)'
+        fi
+        BANNER_PROJECT=${CODEBUILD_BUILD_ID%%:*}
+        BANNER_MISSION=${MISSION_NAME:-}
+        if [ -z "${BANNER_MISSION}" ]; then
+          case "${BANNER_PROJECT}" in
+            build_sdc_aws_processing_lambda) BANNER_MISSION=hermes ;;
+            build_*_sdc_aws_processing_lambda)
+              BANNER_MISSION=${BANNER_PROJECT#build_}
+              BANNER_MISSION=${BANNER_MISSION%_sdc_aws_processing_lambda}
+              ;;
+            *) BANNER_MISSION=unresolved ;;
+          esac
+        fi
+        BANNER_COMMIT=${CODEBUILD_RESOLVED_SOURCE_VERSION:-unknown}
+        printf '\n%s\n' '================================================================================'
+        printf '  SWxSOC BUILD: PROCESSING LAMBDA IMAGE\n'
+        printf '%s\n' '================================================================================'
+        printf '  Environment : %s\n' "${BANNER_ENVIRONMENT}"
+        printf '  Mission     : %s\n' "${BANNER_MISSION}"
+        printf '  Service     : processing\n'
+        printf '  Action      : %s\n' "${BANNER_ACTION}"
+        printf '  Project     : %s\n' "${BANNER_PROJECT:-local}"
+        printf '  Build       : %s\n' "${CODEBUILD_BUILD_NUMBER:-local}"
+        printf '  Trigger     : %s\n' "${BANNER_SOURCE}"
+        printf '  Source ref  : %s\n' "${CODEBUILD_SOURCE_VERSION:-unknown}"
+        printf '  Commit      : %.12s\n' "${BANNER_COMMIT}"
+        printf '%s\n\n' '================================================================================'
+      - |
         set -euo pipefail
 
         REGION=${AWS_REGION:-us-east-1}

@@ -36,8 +36,13 @@ DEFAULT_SKIP_SUFFIXES = (".gz", ".tgz", ".tar", ".zip", ".bz2", ".xz", ".7z", ".
 # engine on every invocation left idle pooled connections open until the
 # container died, which is how a burst of a few dozen concurrent invocations
 # exhausted a db.t4g.micro's roughly 70 connection slots.
-_DATABASE_ENGINES: dict[str, Any] = {}
-_TABLES_CREATED_FOR: set[str] = set()
+#
+# Entries are keyed by the secret ARN, never by the connection URL: the URL
+# carries the password, and keying on it would keep a stale pool alive for
+# every rotation the container lives through. Each entry remembers the URL it
+# was built from so a rotated credential disposes the old pool and builds one
+# replacement, and whether the tracker tables have been created through it.
+_DATABASE_ENGINES: dict[str, dict[str, Any]] = {}
 
 
 def skip_suffixes() -> tuple[str, ...]:
@@ -76,32 +81,76 @@ def is_skipped_file(file_key: str) -> bool:
     return any(name.endswith(suffix) for suffix in skip_suffixes())
 
 
-def database_engine(connection_string: str) -> Any:
+def database_engine(cache_key: str, connection_string: str) -> Any:
     """
-    Return a cached SQLAlchemy engine for this connection string.
+    Return this container's SQLAlchemy engine for a tracker database.
 
     Parameters
     ----------
+    cache_key : str
+        Stable identifier for the database, normally the Secrets Manager
+        secret ARN. It must not contain credentials.
     connection_string : str
-        PostgreSQL connection URL.
+        PostgreSQL connection URL built from the current secret value.
 
     Returns
     -------
     Any
         A shared ``sqlalchemy.engine.Engine`` with a single pooled connection,
-        pre-ping enabled, and connections recycled after five minutes.
+        pre-ping enabled, and connections recycled after five minutes. When the
+        URL differs from the one the cached engine was built with, the old
+        engine is disposed and a replacement is created, so a rotated password
+        never leaves a stale pool behind.
     """
-    engine = _DATABASE_ENGINES.get(connection_string)
-    if engine is None:
-        engine = sqlalchemy_create_engine(
-            connection_string,
-            pool_size=1,
-            max_overflow=0,
-            pool_pre_ping=True,
-            pool_recycle=300,
+    entry = _DATABASE_ENGINES.get(cache_key)
+    if entry is not None and entry["url"] == connection_string:
+        return entry["engine"]
+
+    if entry is not None:
+        log.info(
+            {
+                "status": "INFO",
+                "message": "Tracker credentials changed; replacing the cached database engine",
+                "secret": cache_key,
+            }
         )
-        _DATABASE_ENGINES[connection_string] = engine
+        try:
+            entry["engine"].dispose()
+        except Exception as e:
+            log.warning(f"Could not dispose the previous database engine: {e}")
+
+    engine = sqlalchemy_create_engine(
+        connection_string,
+        pool_size=1,
+        max_overflow=0,
+        pool_pre_ping=True,
+        pool_recycle=300,
+    )
+    _DATABASE_ENGINES[cache_key] = {
+        "url": connection_string,
+        "engine": engine,
+        "tables_created": False,
+    }
     return engine
+
+
+def ensure_tracker_tables(cache_key: str, engine: Any) -> None:
+    """
+    Create the tracker tables once per cached engine.
+
+    Parameters
+    ----------
+    cache_key : str
+        The key the engine is cached under.
+    engine : Any
+        The engine returned by :func:`database_engine` for that key.
+    """
+    entry = _DATABASE_ENGINES.get(cache_key)
+    if entry is not None and entry["engine"] is engine and entry["tables_created"]:
+        return
+    create_tables(engine)
+    if entry is not None and entry["engine"] is engine:
+        entry["tables_created"] = True
 
 
 def handle_event(event: dict[str, Any], context: Any) -> dict[str, int | str]:
@@ -532,13 +581,12 @@ class FileProcessor:
                 f"{secret['host']}:{secret['port']}/{secret['dbname']}"
             )
 
-            # Reuse this container's engine instead of opening a new pool
-            engine = database_engine(connection_string)
+            # Reuse this container's engine instead of opening a new pool.
+            # The secret ARN is the cache key; the URL holds the password.
+            engine = database_engine(secret_arn, connection_string)
 
-            # Create tables once per container if they do not exist
-            if connection_string not in _TABLES_CREATED_FOR:
-                create_tables(engine)
-                _TABLES_CREATED_FOR.add(connection_string)
+            # Create tables once per engine if they do not exist
+            ensure_tracker_tables(secret_arn, engine)
 
             # Set tracker to MetaTracker
             meta_tracker = MetaTracker(engine, parse_science_filename)

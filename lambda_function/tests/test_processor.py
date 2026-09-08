@@ -202,21 +202,36 @@ def test_handle_event_skips_archives_without_processing(use_mission, monkeypatch
     assert "skipped 1 archive" in response["body"]
 
 
-def test_database_engine_is_shared_per_connection_string(monkeypatch):
+class FakeEngine:
+    def __init__(self, url):
+        self.url = url
+        self.disposed = False
+
+    def dispose(self):
+        self.disposed = True
+
+
+def test_database_engine_is_shared_per_secret(monkeypatch):
     created = []
 
     def fake_create_engine(url, **kwargs):
         created.append((url, kwargs))
-        return object()
+        return FakeEngine(url)
 
     monkeypatch.setattr(
         file_processor_module, "sqlalchemy_create_engine", fake_create_engine
     )
     monkeypatch.setattr(file_processor_module, "_DATABASE_ENGINES", {})
 
-    first = file_processor_module.database_engine("postgresql://db-a/tracker")
-    second = file_processor_module.database_engine("postgresql://db-a/tracker")
-    other = file_processor_module.database_engine("postgresql://db-b/tracker")
+    first = file_processor_module.database_engine(
+        "arn:secret:a", "postgresql://u:p1@a/db"
+    )
+    second = file_processor_module.database_engine(
+        "arn:secret:a", "postgresql://u:p1@a/db"
+    )
+    other = file_processor_module.database_engine(
+        "arn:secret:b", "postgresql://u:p1@b/db"
+    )
 
     assert first is second
     assert other is not first
@@ -224,3 +239,51 @@ def test_database_engine_is_shared_per_connection_string(monkeypatch):
     assert created[0][1]["pool_size"] == 1
     assert created[0][1]["max_overflow"] == 0
     assert created[0][1]["pool_pre_ping"] is True
+
+
+def test_rotated_password_replaces_the_cached_engine(monkeypatch):
+    monkeypatch.setattr(
+        file_processor_module,
+        "sqlalchemy_create_engine",
+        lambda url, **kw: FakeEngine(url),
+    )
+    monkeypatch.setattr(file_processor_module, "_DATABASE_ENGINES", {})
+
+    before = file_processor_module.database_engine(
+        "arn:secret:a", "postgresql://u:old@a/db"
+    )
+    after = file_processor_module.database_engine(
+        "arn:secret:a", "postgresql://u:new@a/db"
+    )
+    again = file_processor_module.database_engine(
+        "arn:secret:a", "postgresql://u:new@a/db"
+    )
+
+    assert after is not before
+    assert before.disposed is True
+    assert again is after
+    assert list(file_processor_module._DATABASE_ENGINES) == ["arn:secret:a"]
+
+
+def test_tracker_tables_are_created_once_per_engine(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        file_processor_module,
+        "sqlalchemy_create_engine",
+        lambda url, **kw: FakeEngine(url),
+    )
+    monkeypatch.setattr(file_processor_module, "create_tables", calls.append)
+    monkeypatch.setattr(file_processor_module, "_DATABASE_ENGINES", {})
+
+    engine = file_processor_module.database_engine(
+        "arn:secret:a", "postgresql://u:old@a/db"
+    )
+    file_processor_module.ensure_tracker_tables("arn:secret:a", engine)
+    file_processor_module.ensure_tracker_tables("arn:secret:a", engine)
+    assert calls == [engine]
+
+    rotated = file_processor_module.database_engine(
+        "arn:secret:a", "postgresql://u:new@a/db"
+    )
+    file_processor_module.ensure_tracker_tables("arn:secret:a", rotated)
+    assert calls == [engine, rotated]

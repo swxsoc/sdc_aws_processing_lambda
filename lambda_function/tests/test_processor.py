@@ -88,6 +88,7 @@ def test_file_calibrate(
     if n_expected > 0:
         assert calibrated_files[0] == expected_output
 
+
 @pytest.mark.parametrize("use_mission", ["swxsoc_pipeline"], indirect=True)
 def test_file_calibrate_failure(use_mission):
     # Setup
@@ -110,7 +111,7 @@ def test_handle_event(use_mission, s3_client, tmp_path, monkeypatch):
 
     filename = "REACH-TEST_20250904T000000_20250904T010000.csv"
     parent_dir = Path(__file__).parent / "test_data"
-    
+
     # Set the absolute path using file_path as string
     os.environ["SDC_AWS_FILE_PATH"] = str(parent_dir / filename)
 

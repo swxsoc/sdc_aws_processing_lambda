@@ -23,24 +23,41 @@ phases:
       - echo Login to Private ECR $REGION
       - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin 351967858401.dkr.ecr.$REGION.amazonaws.com
       - echo ________________________________
-      
-      - echo Create Date Tag
-      - export TAG=$(date +%Y-%m-%d-%H-%M-%S)
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+      - |
+        BASE_IMAGE="public.ecr.aws/w5r9l1c8/swsoc-docker-lambda-base:latest"
+        if git describe --tags --exact-match > /dev/null 2>&1; then
+          echo "This is a tag push event"
+          ECR_REPO="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda"
+          CDK_ENVIRONMENT=PRODUCTION
+          VERSION=$(git describe --tags --exact-match)
+        elif [[ "${CDK_ENVIRONMENT}" == "PRODUCTION" ]]; then
+          echo "This is a production environment"
+          ECR_REPO="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda"
+          CDK_ENVIRONMENT=PRODUCTION
+          VERSION=$(date -u +"%Y%m%d%H%M%S")
+        else
+          echo "This is a development environment"
+          ECR_REPO="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/dev-sdc_aws_processing_lambda"
+          BASE_IMAGE="public.ecr.aws/w5r9l1c8/dev-swsoc-docker-lambda-base:latest"
+          CDK_ENVIRONMENT=DEVELOPMENT
+          VERSION=$(date -u +"%Y%m%d%H%M%S")
+        fi
       - echo ________________________________
 
       - echo Build Docker Image
-      - docker build -t 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest lambda_function/.
-      
+      - docker build --build-arg BASE_IMAGE=$BASE_IMAGE -t $ECR_REPO:latest lambda_function/.
+
       - echo Tagging Docker Image...
-      - docker tag 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG
+      - docker tag $ECR_REPO:latest $ECR_REPO:$VERSION
 
       - echo Pushing the Docker image with Tags...
-      - docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:latest
-      - docker push 351967858401.dkr.ecr.$REGION.amazonaws.com/sdc_aws_processing_lambda:$TAG
+      - docker push $ECR_REPO:latest
+      - docker push $ECR_REPO:$VERSION
       - echo ________________________________
-      
+
       - echo Updating Deployment
-      - aws codebuild start-build --project-name build_sdc_aws_pipeline_architecture --region us-east-2 --environment-variables-override name=LAMBDA_PIPELINE,value=PROCESSING,type=PLAINTEXT name=TAG,value=$TAG,type=PLAINTEXT
+      - aws codebuild start-build --project-name build_sdc_aws_pipeline_architecture --region us-east-2 --environment-variables-override name=CDK_ENVIRONMENT,value=$CDK_ENVIRONMENT,type=PLAINTEXT
       - echo ________________________________
 
   post_build:

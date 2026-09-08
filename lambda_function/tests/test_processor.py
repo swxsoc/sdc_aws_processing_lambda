@@ -5,6 +5,7 @@ from pathlib import Path
 import boto3
 import pytest
 from moto import mock_aws as moto_mock_aws
+from src.file_processor import file_processor as file_processor_module
 from src.file_processor.file_processor import FileProcessor, handle_event
 from swxsoc import log
 
@@ -134,3 +135,91 @@ def test_handle_event(use_mission, s3_client, tmp_path, monkeypatch):
 
     # Verify
     assert response["statusCode"] == 200
+
+
+@pytest.mark.parametrize(
+    ("file_key", "expected"),
+    [
+        ("swxsoc_pipeline/reach/raw/2026/09/08/reach-20260908T0017.tar.gz", True),
+        ("reach-20260908T0017.TAR.GZ", True),
+        ("bundle.zip", True),
+        ("REACH-ALL_20250901T000000_20250902T000000.csv", False),
+        ("reach_all_l1c_prelim_20260101T000000_v1.0.0.cdf", False),
+        ("padreMDA0_240916122901.dat", False),
+    ],
+)
+def test_is_skipped_file_matches_archives_only(file_key, expected):
+    assert file_processor_module.is_skipped_file(file_key) is expected
+
+
+def test_skip_suffixes_can_be_overridden(monkeypatch):
+    monkeypatch.setenv("SDC_AWS_SKIP_SUFFIXES", "xml, .bak")
+    assert file_processor_module.skip_suffixes() == (".xml", ".bak")
+    assert file_processor_module.is_skipped_file("reach.mis-20260908T001603.246.xml")
+    assert not file_processor_module.is_skipped_file("reach-20260908T0017.tar.gz")
+
+
+@pytest.mark.parametrize("use_mission", ["swxsoc_pipeline"], indirect=True)
+def test_archives_are_skipped_before_download(use_mission, monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("archive should not be downloaded or tracked")
+
+    monkeypatch.setattr(file_processor_module, "get_science_file", fail_if_called)
+    monkeypatch.setattr(
+        FileProcessor, "_track_file_metatracker", staticmethod(fail_if_called)
+    )
+
+    FileProcessor(
+        s3_bucket="dev-swxsoc-pipeline-reach",
+        file_key="swxsoc_pipeline/reach/raw/2026/09/08/reach-20260908T0017.tar.gz",
+        environment="DEVELOPMENT",
+    )
+
+
+@pytest.mark.parametrize("use_mission", ["swxsoc_pipeline"], indirect=True)
+def test_handle_event_skips_archives_without_processing(use_mission, monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("FileProcessor should not run for an archive")
+
+    monkeypatch.setattr(file_processor_module, "FileProcessor", fail_if_called)
+
+    s3_records = {
+        "Records": [
+            {
+                "s3": {
+                    "bucket": {"name": "swxsoc-pipeline-reach"},
+                    "object": {"key": "raw/2026/09/08/reach-20260908T0017.tar.gz"},
+                }
+            }
+        ]
+    }
+    event = {"Records": [{"Sns": {"Message": json.dumps(s3_records)}}]}
+
+    response = handle_event(event, None)
+
+    assert response["statusCode"] == 200
+    assert "skipped 1 archive" in response["body"]
+
+
+def test_database_engine_is_shared_per_connection_string(monkeypatch):
+    created = []
+
+    def fake_create_engine(url, **kwargs):
+        created.append((url, kwargs))
+        return object()
+
+    monkeypatch.setattr(
+        file_processor_module, "sqlalchemy_create_engine", fake_create_engine
+    )
+    monkeypatch.setattr(file_processor_module, "_DATABASE_ENGINES", {})
+
+    first = file_processor_module.database_engine("postgresql://db-a/tracker")
+    second = file_processor_module.database_engine("postgresql://db-a/tracker")
+    other = file_processor_module.database_engine("postgresql://db-b/tracker")
+
+    assert first is second
+    assert other is not first
+    assert len(created) == 2
+    assert created[0][1]["pool_size"] == 1
+    assert created[0][1]["max_overflow"] == 0
+    assert created[0][1]["pool_pre_ping"] is True

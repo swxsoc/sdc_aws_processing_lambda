@@ -10,6 +10,12 @@ This repository is to define the image to be used for the SWSOC file processing 
 
 The container will contain the latest release code as the production environment and the latest code on master as the development. 
 
+### **Files that are never processed**:
+
+Compressed archives (`.gz`, `.tgz`, `.tar`, `.zip`, `.bz2`, `.xz`, `.7z`, `.rar`) are skipped before anything is downloaded or written to MetaTracker. REACH, for example, delivers minute-stamped tarballs of telemetry XML that no instrument package can read, and running them only produced failed status rows and open database connections. Set `SDC_AWS_SKIP_SUFFIXES` (comma-separated) to change the list.
+
+The MetaTracker engine is created once per Lambda container with a single pooled connection, so a burst of invocations holds one connection per container instead of leaving pools open behind every event.
+
 ### **Testing Locally (Using own Test Data)**:
 1. Build the lambda container image (from within the lambda_function folder) you'd like to test: 
     

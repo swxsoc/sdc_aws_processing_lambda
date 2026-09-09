@@ -25,13 +25,6 @@ from swxsoc.util.config import get_instrument_bucket, get_instrument_package
 from swxsoc.util.util import parse_science_filename
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random
 
-# Compressed archives are never science inputs. REACH, for example, delivers
-# minute-stamped tarballs of telemetry XML that end up under raw/ in the
-# instrument bucket; running them through an instrument package only produces
-# a failed status row and a database connection for nothing. Override with a
-# comma-separated SDC_AWS_SKIP_SUFFIXES if a mission ever needs to process one.
-DEFAULT_SKIP_SUFFIXES = (".gz", ".tgz", ".tar", ".zip", ".bz2", ".xz", ".7z", ".rar")
-
 # One engine per Lambda container, sized for one connection. Creating a new
 # engine on every invocation left idle pooled connections open until the
 # container died, which is how a burst of a few dozen concurrent invocations
@@ -43,42 +36,6 @@ DEFAULT_SKIP_SUFFIXES = (".gz", ".tgz", ".tar", ".zip", ".bz2", ".xz", ".7z", ".
 # was built from so a rotated credential disposes the old pool and builds one
 # replacement, and whether the tracker tables have been created through it.
 _DATABASE_ENGINES: dict[str, dict[str, Any]] = {}
-
-
-def skip_suffixes() -> tuple[str, ...]:
-    """
-    Return the lowercase file suffixes the processor refuses to process.
-
-    Returns
-    -------
-    tuple[str, ...]
-        Suffixes from ``SDC_AWS_SKIP_SUFFIXES`` when set, else the defaults.
-    """
-    configured = os.getenv("SDC_AWS_SKIP_SUFFIXES")
-    if configured is None:
-        return DEFAULT_SKIP_SUFFIXES
-    suffixes = tuple(
-        item.strip().lower() for item in configured.split(",") if item.strip()
-    )
-    return tuple(item if item.startswith(".") else f".{item}" for item in suffixes)
-
-
-def is_skipped_file(file_key: str) -> bool:
-    """
-    Report whether an S3 key names a file the processor must not touch.
-
-    Parameters
-    ----------
-    file_key : str
-        S3 object key or file name.
-
-    Returns
-    -------
-    bool
-        ``True`` when the key ends with a skipped suffix such as ``.tar.gz``.
-    """
-    name = Path(file_key).name.lower()
-    return any(name.endswith(suffix) for suffix in skip_suffixes())
 
 
 def database_engine(cache_key: str, connection_string: str) -> Any:
@@ -183,32 +140,14 @@ def handle_event(event: dict[str, Any], context: Any) -> dict[str, int | str]:
             return {"statusCode": 200, "body": "Reprocessed data from database."}
 
         # Process each S3 event record
-        skipped = 0
         for s3_event in records:
             s3_bucket = s3_event["s3"]["bucket"]["name"]
             file_key = s3_event["s3"]["object"]["key"]
-
-            if is_skipped_file(file_key):
-                skipped += 1
-                log.warning(
-                    {
-                        "status": "SKIPPED",
-                        "message": "Archive is not a processable science file",
-                        "instrument_bucket_name": s3_bucket,
-                        "file_key": file_key,
-                    }
-                )
-                continue
 
             FileProcessor(
                 s3_bucket=s3_bucket, file_key=file_key, environment=environment
             )
 
-        if skipped:
-            return {
-                "statusCode": 200,
-                "body": f"Files processed successfully; skipped {skipped} archive(s).",
-            }
         return {"statusCode": 200, "body": "Files processed successfully."}
 
     except Exception as e:
@@ -281,17 +220,6 @@ class FileProcessor:
                 "dry_run": self.dry_run,
             }
         )
-
-        if is_skipped_file(self.file_key):
-            log.warning(
-                {
-                    "status": "SKIPPED",
-                    "message": "Archive is not a processable science file",
-                    "instrument_bucket_name": self.instrument_bucket_name,
-                    "file_key": self.file_key,
-                }
-            )
-            return
 
         # Parse file key to needed information
         parsed_file_key = parse_file_key(self.file_key)

@@ -243,9 +243,19 @@ phases:
         docker push "${FULL_ECR_REPO}:latest"
         docker push "${FULL_ECR_REPO}:${VERSION}"
 
+        # The mission architecture project runs one deploy at a time, and
+        # CodeBuild rejects a StartBuild over that limit instead of queueing
+        # it. A base-image rebuild starts every Lambda build for the mission at
+        # once, so wait for the deploy slot. The first attempt always runs;
+        # retries stop 55 minutes after this build started, inside the
+        # project's 60-minute build timeout (set in sdc_aws_architecture).
+        # Only throttling and limit errors are retried; anything else fails
+        # the build immediately.
         ARCHITECTURE_PROJECT_NAME="build_${MISSION_NAME}_sdc_aws_pipeline_architecture"
+        BUILD_START_SECONDS=$(( ${CODEBUILD_START_TIME:-$(( $(date +%s) * 1000 ))} / 1000 ))
+        DEPLOY_START_DEADLINE=$(( BUILD_START_SECONDS + 55 * 60 ))
         echo "Starting ${ARCHITECTURE_PROJECT_NAME} for ${CDK_ENVIRONMENT}"
-        aws codebuild start-build \
+        until DEPLOY_BUILD=$(aws codebuild start-build \
           --project-name "${ARCHITECTURE_PROJECT_NAME}" \
           --region "${REGION}" \
           --source-version main \
@@ -253,7 +263,31 @@ phases:
             name=CDK_ENVIRONMENT,value="${CDK_ENVIRONMENT}",type=PLAINTEXT \
             name=MISSION_NAME,value="${MISSION_NAME}",type=PLAINTEXT \
             name=LAMBDA_PIPELINE,value="${LAMBDA_PIPELINE}",type=PLAINTEXT \
-            name=TAG,value="${VERSION}",type=PLAINTEXT
+            name=TAG,value="${VERSION}",type=PLAINTEXT \
+          --query 'build.id' --output text 2>&1); do
+          case "${DEPLOY_BUILD}" in
+            *AccountLimitExceededException*|*ThrottlingException*|*TooManyRequestsException*|*RequestLimitExceeded*|*"Rate exceeded"*) ;;
+            *)
+              echo "StartBuild for ${ARCHITECTURE_PROJECT_NAME} failed and will not be retried: ${DEPLOY_BUILD}"
+              exit 1
+              ;;
+          esac
+          # Never sleep past the deadline, and check it again before the
+          # next attempt so no StartBuild goes out after the cutoff.
+          RETRY_WAIT=$(( DEPLOY_START_DEADLINE - $(date +%s) ))
+          if [ "${RETRY_WAIT}" -gt 30 ]; then
+            RETRY_WAIT=30
+          fi
+          if [ "${RETRY_WAIT}" -gt 0 ]; then
+            echo "${ARCHITECTURE_PROJECT_NAME} is busy, retrying in ${RETRY_WAIT}s: ${DEPLOY_BUILD}"
+            sleep "${RETRY_WAIT}"
+          fi
+          if [ "$(date +%s)" -ge "${DEPLOY_START_DEADLINE}" ]; then
+            echo "Gave up waiting for ${ARCHITECTURE_PROJECT_NAME}: ${DEPLOY_BUILD}"
+            exit 1
+          fi
+        done
+        echo "Started ${DEPLOY_BUILD}"
 
   post_build:
     commands:

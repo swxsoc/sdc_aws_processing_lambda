@@ -1,0 +1,5 @@
+psycopg2-binary
+swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main
+swxsoc[tracker] @ git+https://github.com/swxsoc/swxsoc.git@main
+gdctb_craft @ git+https://github.com/GDC-Trailblazer/gdctb_craft.git
+gdctb_cape_eea @ git+https://github.com/GDC-Trailblazer/gdctb_cape_eea.git

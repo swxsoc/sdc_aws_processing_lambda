@@ -420,8 +420,12 @@ class FileProcessor:
             client = session.client(service_name="secretsmanager")
             response = client.get_secret_value(SecretId=secret_arn)
             secret = json.loads(response["SecretString"])
+            # Name the DBAPI explicitly. SQLAlchemy 2.1 made psycopg (v3) the
+            # default driver for plain "postgresql://" URLs, but this image
+            # installs psycopg2-binary, so a bare scheme fails with
+            # "No module named 'psycopg'" and the file is never tracked.
             connection_string = (
-                f"postgresql://{secret['username']}:{secret['password']}@"
+                f"postgresql+psycopg2://{secret['username']}:{secret['password']}@"
                 f"{secret['host']}:{secret['port']}/{secret['dbname']}"
             )
 

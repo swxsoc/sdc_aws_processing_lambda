@@ -70,7 +70,8 @@ lambda_function/
 ├── hermes-requirements.txt    # HERMES package dependencies
 ├── padre-requirements.txt     # PADRE package dependencies
 ├── swxsoc_pipeline-requirements.txt  # REACH Mission requirements
-└── impax-requirements.txt     # IMPAX package dependencies (optional)
+├── impax-requirements.txt     # IMPAX package dependencies (optional)
+└── demo-requirements.txt      # Demo mission (demo_craft) dependencies
 
 lambda_function/src/file_processor/file_processor.py imports from:
   - swxsoc: File I/O (get_science_file, parse_file_key, push_science_file)

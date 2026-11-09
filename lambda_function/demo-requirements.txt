@@ -1,0 +1,4 @@
+psycopg2-binary
+swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main
+swxsoc[tracker] @ git+https://github.com/swxsoc/swxsoc.git@main
+demo_craft @ git+https://github.com/swxsoc/demo_craft.git@v0.0.1
